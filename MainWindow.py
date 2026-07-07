@@ -1,4 +1,5 @@
 import sys
+from DataUtils import DataUtils
 import PyQt5.QtWidgets as qtw
 from PyQt5.QtCore import Qt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -11,11 +12,14 @@ from GeneticAlgorithm import GeneticAlgorithm
 class MainWindow(qtw.QMainWindow):
     def __init__(self):
         super().__init__()
+        self.input_points = []
         self.algorithm = None
         self.current_step = 0
         self.cur_ind = None
         self.population_size = 0
         self.setup_ui()
+        self.current_generation = 0
+        self.current_individual_index = 0
         self.show()
 
     def setup_ui(self):
@@ -37,13 +41,13 @@ class MainWindow(qtw.QMainWindow):
         # Блок с вводом точек
         points_box = qtw.QVBoxLayout()
         self.button_generate = qtw.QPushButton("Случайные точки")
-        self.button_generate.clicked.connect(self.nothing)      # Написать функцию
+        self.button_generate.clicked.connect(self.generate_random_points_clicked)      # Написать функцию
         points_box.addWidget(self.button_generate)
         self.button_load = qtw.QPushButton("Загрузить точки")
         self.button_load.clicked.connect(self.nothing)      # Написать функцию
         points_box.addWidget(self.button_load)
         self.button_manually = qtw.QPushButton("Ввести точки вручную")
-        self.button_manually.clicked.connect(self.nothing)      # Написать функцию
+        self.button_manually.clicked.connect(self.manual_points_input)      # Написать функцию
         points_box.addWidget(self.button_manually)
         self.points_info = qtw.QLabel("Точек: 0")
         points_box.addWidget(self.points_info)
@@ -84,11 +88,12 @@ class MainWindow(qtw.QMainWindow):
         self.spin_int_pen.setValue(0.5)
         param_form.addRow("Штраф за пересечение квадратов", self.spin_int_pen)
 
-        self.spin_out_pen = qtw.QDoubleSpinBox()
-        self.spin_out_pen.setRange(0, 100000)
-        self.spin_out_pen.setSingleStep(0.1)
-        self.spin_out_pen.setValue(0.5)
-        param_form.addRow("Штраф за выход за границы", self.spin_out_pen)
+        self.combo_selection_method = qtw.QComboBox()
+        self.combo_selection_method.addItems([
+            "Турнирный отбор",
+            "Рулетка"
+        ])
+        param_form.addRow("Метод отбора родителей", self.combo_selection_method)
 
         self.button_start = qtw.QPushButton("Запустить алгоритм")
         self.button_start.clicked.connect(self.nothing) # Написать функцию
@@ -174,6 +179,63 @@ class MainWindow(qtw.QMainWindow):
 
     def nothing(self):
         pass
+
+
+    def generate_random_points_clicked(self):
+        points_count, ok = qtw.QInputDialog.getInt(
+            self,
+            "Случайная генерация точек",
+            "Введите количество точек:",
+            5,
+            1,
+            10000
+        )
+
+        if not ok:
+            return
+
+        self.input_points = DataUtils.generate_random_points(points_count)
+
+        self.points_info.setText(f"Точек: {len(self.input_points)}")
+        self.visual_widget.set_data(self.input_points, [])
+    
+
+    def manual_points_input(self):
+        text, ok = qtw.QInputDialog.getMultiLineText(
+            self,
+            "Ручной ввод точек",
+            "Введите точки построчно в формате x,y:"
+        )
+
+        if not ok:
+            return
+
+        points = []
+
+        try:
+            for line in text.splitlines():
+                line = line.strip()
+
+                if not line:
+                    continue
+
+                line = line.replace(";", ",")
+
+                x_str, y_str = line.split(",")
+
+                points.append((float(x_str), float(y_str)))
+
+        except Exception as error:
+            qtw.QMessageBox.critical(
+                self,
+                "Ошибка ввода",
+                f"Некорректный формат точек:\n{error}"
+            )
+            return
+
+        self.points = points
+        self.points_info.setText(f"Точек: {len(self.points)}")
+        self.visual_widget.set_data(self.points, [])
 
 
 
