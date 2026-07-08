@@ -23,7 +23,7 @@ class MainWindow(qtw.QMainWindow):
         self.show()
 
     def setup_ui(self):
-        self.setWindowTitle("Генетический алгоритм. Вариант 9")
+        self.setWindowTitle("Генетический алгоритм. Вариант 8")
         self.setGeometry(100, 100, 1600, 700)
 
         self.central_widget = qtw.QWidget()
@@ -91,12 +91,13 @@ class MainWindow(qtw.QMainWindow):
         self.combo_selection_method = qtw.QComboBox()
         self.combo_selection_method.addItems([
             "Турнирный отбор",
-            "Рулетка"
+            "Рулетка",
+            "Ранжированный отбор"
         ])
         param_form.addRow("Метод отбора родителей", self.combo_selection_method)
 
         self.button_start = qtw.QPushButton("Запустить алгоритм")
-        self.button_start.clicked.connect(self.nothing) # Написать функцию
+        self.button_start.clicked.connect(self.draw_mock_fitness_plot) # Написать функцию
         param_form.addRow(self.button_start)
 
         param_group = qtw.QGroupBox("Параметры алгоритма")
@@ -175,6 +176,7 @@ class MainWindow(qtw.QMainWindow):
         right_layout.addWidget(self.canvas_quality)
         self.graph_toolbar = NavigationToolbar(self.canvas_quality)
         right_layout.addWidget(self.graph_toolbar)
+        self.graph_toolbar = NavigationToolbar(self.canvas_quality)
 
 
     def nothing(self):
@@ -182,14 +184,7 @@ class MainWindow(qtw.QMainWindow):
 
 
     def generate_random_points_clicked(self):
-        points_count, ok = qtw.QInputDialog.getInt(
-            self,
-            "Случайная генерация точек",
-            "Введите количество точек:",
-            5,
-            1,
-            10000
-        )
+        points_count, ok = qtw.QInputDialog.getInt(self, "Случайная генерация точек", "Введите количество точек:", 5, 1, 10000)
 
         if not ok:
             return
@@ -201,11 +196,7 @@ class MainWindow(qtw.QMainWindow):
     
 
     def manual_points_input(self):
-        text, ok = qtw.QInputDialog.getMultiLineText(
-            self,
-            "Ручной ввод точек",
-            "Введите точки построчно в формате x,y:"
-        )
+        text, ok = qtw.QInputDialog.getMultiLineText(self, "Ручной ввод точек", "Введите точки построчно в формате x,y:")
 
         if not ok:
             return
@@ -226,16 +217,53 @@ class MainWindow(qtw.QMainWindow):
                 points.append((float(x_str), float(y_str)))
 
         except Exception as error:
-            qtw.QMessageBox.critical(
-                self,
-                "Ошибка ввода",
-                f"Некорректный формат точек:\n{error}"
-            )
+            qtw.QMessageBox.critical(self, "Ошибка ввода", f"Некорректный формат точек:\n{error}")
             return
 
         self.points = points
         self.points_info.setText(f"Точек: {len(self.points)}")
         self.visual_widget.set_data(self.points, [])
+
+    
+    def draw_mock_fitness_plot(self):
+        generations_count = self.spin_generation.value()
+
+        generations = list(range(generations_count))
+
+        fitness_values = []
+        current_fitness = 0
+
+        for generation in generations:
+            current_fitness += 1 + generation * 0.05
+            fitness_values.append(current_fitness)
+
+        self.ax_quality.clear()
+
+        self.ax_quality.plot(
+            generations,
+            fitness_values,
+            marker="o",
+            markersize=3,
+            linewidth=1
+        )
+
+        self.ax_quality.set_title("Изменение функции качества")
+        self.ax_quality.set_xlabel("Поколение")
+        self.ax_quality.set_ylabel("Fitness")
+        self.ax_quality.grid(True)
+
+        self.canvas_quality.draw()
+    
+
+    def draw_empty_fitness_plot(self):
+        self.ax_quality.clear()
+
+        self.ax_quality.set_title("Изменение функции качества")
+        self.ax_quality.set_xlabel("Поколение")
+        self.ax_quality.set_ylabel("Fitness")
+        self.ax_quality.grid(True)
+
+        self.canvas_quality.draw()
 
 
 
