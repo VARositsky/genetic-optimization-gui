@@ -36,9 +36,10 @@ class VisualWidget(qtw.QGraphicsView):
             self.scene.addItem(rect_item)
 
         for x, y in points:
-            point_item = qtw.QGraphicsEllipseItem(x - 6, y - 6, 12, 12)
-            point_item.setFlag(qtw.QGraphicsEllipseItem.ItemIgnoresTransformations)
+            point_item = qtw.QGraphicsEllipseItem(-6, -6, 12, 12)
+            point_item.setPos(x, y)
             point_item.setBrush(QBrush(Qt.red))
+            point_item.setFlag(qtw.QGraphicsItem.ItemIgnoresTransformations)
             self.scene.addItem(point_item)
 
         bounding_rect = self.scene.itemsBoundingRect()
@@ -74,6 +75,7 @@ class VisualWidget(qtw.QGraphicsView):
 
 if __name__ == '__main__':
     app = qtw.QApplication(sys.argv)
-    v = VisualWidget(points=[(1, 3), (4, 4)], squares=[(-3, -5, 20), (1, 1, 20)])
+    v = VisualWidget()
+    v.set_data(points=[(100, 55), (464, 85)], squares=[(0, -10, 200), (1, 10, 50)])
     v.show()
     sys.exit(app.exec_())
