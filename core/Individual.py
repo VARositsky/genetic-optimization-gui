@@ -10,7 +10,7 @@ class Individual:
         self._c_squares = M
         self._bounds = bounds
         self._chromosomes: List[Tuple[float, float, float]] = self._generate_chromosomes() if init else []
-        self._fitness = 0.
+        self._fitness = 0
     
     def _generate_chromosomes(self):
         chromosomes = []
@@ -34,8 +34,11 @@ class Individual:
     def get_chromosomes(self) ->  List[Tuple[float, float, float]]:
         return self._chromosomes
     
+    def get_bounds(self) -> Tuple[int, int, int, int]:
+        return self._bounds
+    
     def set_chromosomes(self, chromosomes: List[Tuple[float, float, float]]) -> None:
-        self._chromosomes = chromosomes[:]
+        self._chromosomes = list(chromosomes)
 
     def set_fitness(self, value: float):
         self._fitness = value

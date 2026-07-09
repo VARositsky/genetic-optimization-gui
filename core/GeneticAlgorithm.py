@@ -7,7 +7,7 @@ from Mutation import Mutation
 
 
 class GeneticAlgorithm:
-    def __init__(self, points=None, pop_size=10, square_count=8, gen_count=50, mut_prob=0.01, cross_prob=0.1, intersection_penalty=2):
+    def __init__(self, points=None, pop_size=16, square_count=8, gen_count=50, mut_prob=0.2, cross_prob=0.8, intersection_penalty=3):
         self._history = [] # История эволюции
         self._points = points if points is not None else []
         self._square_count = square_count
@@ -58,7 +58,6 @@ class GeneticAlgorithm:
     def _create_population(self):
         """Создает случайную популяцию"""
         population = [Individual(self._square_count, (-20, -20, 20, 20)) for _ in range(self._population_size)]
-        self._history.append(population)
         return population
 
     def fitness(self, Individualual: Individual) -> float:
@@ -108,10 +107,16 @@ class GeneticAlgorithm:
         pass
     
     def step(self):
-        # parents := selection(population)
-        # new_population := mutation(crossover(parents))
-        # history.append(new_population)
-        pass
+        parents = self._selection.rank_selection(self._history[-1])
+        
+        new_population = self._mutation.do(
+            self._crossover.do(
+                parents, 
+                self._crossover_probability), 
+            self._mutation_probability)
+
+        self._eval_fitness(new_population)
+        self._history.append(new_population)
     
     def _eval_fitness(self, population: List[Individual]) -> None:
         """И значение целевой функции"""
@@ -125,8 +130,6 @@ if __name__ == '__main__':
     N = 20
     ga = GeneticAlgorithm(points=[(random.randint(-20, 20), random.randint(-20, 20)) for _ in range(N)])
     ga.initialize()
-    ga.step()
-    
     pop = ga.get_population(0)
     gen = pop[0]
     n = 0
@@ -136,8 +139,20 @@ if __name__ == '__main__':
             n = i
     print(n)
     gen.draw_squares(ga.get_points())
+    for j in range(51):
+        # pop = ga.get_population(j)
+        # gen = pop[0]
+        # n = 0
+        # for i in range(1, len(pop)):
+        #     if gen.get_fitness() < pop[i].get_fitness():
+        #         gen = pop[i]
+        #         n = i
+        # print(n)
+        # gen.draw_squares(ga.get_points())
+        
+        ga.step()
     
-    pop = ga.get_population(1)
+    pop = ga.get_population(50)
     gen = pop[0]
     n = 0
     for i in range(1, len(pop)):
@@ -146,5 +161,6 @@ if __name__ == '__main__':
             n = i
     print(n)
     gen.draw_squares(ga.get_points())
+        
     '''EXAMPLE'''
     
