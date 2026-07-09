@@ -134,7 +134,7 @@ class GeneticAlgorithm:
                 # Квадрат пустой
                 empty_squares_count += 1
             else:
-                # Квадрат не пустой, но оцениваем его эффективность:
+                # Квадрат не пустой, оценим его эффективность:
                 size_efficiency_penalty += (w ** 2) / points_in_square
 
         return 5 * covered_points_count \

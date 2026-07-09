@@ -23,11 +23,6 @@ class Mutation:
             bounds = ind.get_bounds()
             M = len(chromosomes)
             
-            # Рассчитываем динамический шаг для локального сдвига на основе границ.
-            # Это не даст квадратам прыгать слишком далеко.
-            # max_shift_x = max(1.0, (bounds[2] - (bounds[0] - ind.MAX_WIDTH)) * 0.2)
-            # max_shift_y = max(1.0, (bounds[3] - (bounds[1] - ind.MAX_WIDTH)) * 0.2)
-            
             mutated_chromosomes = []
             
             for (x, y, w) in chromosomes:
@@ -41,10 +36,6 @@ class Mutation:
                         new_x = random.uniform(bounds[0], bounds[2])
                         new_y = random.uniform(bounds[1], bounds[3])
                         
-                        # Ограничиваем координаты рамками допустимой области bounds
-                        # new_x = max(bounds[0] - ind.MAX_WIDTH, min(new_x, bounds[2]))
-                        # new_y = max(bounds[1] - ind.MAX_WIDTH, min(new_y, bounds[3]))
-                        
                         mutated_chromosomes.append((new_x, new_y, w))
                         
                     elif mutation_type == 2:
@@ -53,14 +44,10 @@ class Mutation:
                         scale = random.uniform(0.2, 1.8)
                         new_w = max(1.0, w * scale)
                         
-                        # # Также следим, чтобы w не превышал MAX_WIDTH
-                        # new_w = min(new_w, Individual.MAX_WIDTH)
-                        
                         mutated_chromosomes.append((x, y, new_w))
                         
                     # else:
-                    #     # 3. Полный сброс (макро-мутация)
-                    #     # Полностью перегенерируем данный квадрат в случайном месте
+                    #     3. Новый квадрат в случайном месте
                     #     new_x = random.uniform(bounds[0], bounds[2])
                     #     new_y = random.uniform(bounds[1], bounds[3])
                     #     new_w = max(1, random.expovariate(ind.get_coeff()))
