@@ -5,10 +5,11 @@ import matplotlib.patches as patches
 
 
 class Individual:
-    MAX_WIDTH = 10
-    def __init__(self, M: int, bounds: Tuple[int, int, int, int], init=True):
+    MAX_WIDTH = 20
+    def __init__(self, M: int, bounds: Tuple[int, int, int, int], coeff: float, init=True):
         self._c_squares = M
         self._bounds = bounds
+        self._coeff = coeff
         self._chromosomes: List[Tuple[float, float, float]] = self._generate_chromosomes() if init else []
         self._fitness = 0
     
@@ -17,16 +18,16 @@ class Individual:
         for _ in range(self._c_squares):
             x = random.randint(self._bounds[0], self._bounds[2])
             y = random.randint(self._bounds[1], self._bounds[3])
-            w = random.randint(1, Individual.MAX_WIDTH) # <--- изменить
-            
-            gen = (x, y, w)
-            # self._validate_gen(gen)
-            
+            w = max(1, random.expovariate(self._coeff)) # <--- изменить | vrsn 09.07
+            gen = (x, y, w)            
             chromosomes.append(gen)
         return chromosomes
 
     def _validate_gen(self, gen):
         pass
+    
+    def get_coeff(self) -> float:
+        return self._coeff
     
     def get_fitness(self) -> float:
         return self._fitness
@@ -54,8 +55,8 @@ class Individual:
             a – длина стороны.
         """
         fig, ax = plt.subplots()
-        ax.set_xlim(self._bounds[0], self._bounds[2] + self.MAX_WIDTH)
-        ax.set_ylim(self._bounds[1], self._bounds[2] + self.MAX_WIDTH)
+        ax.set_xlim(self._bounds[0] - self.MAX_WIDTH, self._bounds[2] + self.MAX_WIDTH)
+        ax.set_ylim(self._bounds[1] - self.MAX_WIDTH, self._bounds[2] + self.MAX_WIDTH)
         # Добавляем каждый квадрат как прямоугольник
         for (x, y, a) in self._chromosomes:
             rect = patches.Rectangle(
@@ -81,5 +82,5 @@ if __name__ == '__main__':
     xy = (-10, -10)
     xy2 = (10, 10)
         
-    individ = Individual(5, (xy[0], xy[1], xy2[0], xy2[1]))
+    individ = Individual(8, (xy[0], xy[1], xy2[0], xy2[1]), 1/(20/8))
     individ.draw_squares(points=None)
