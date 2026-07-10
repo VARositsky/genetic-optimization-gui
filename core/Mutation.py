@@ -1,6 +1,8 @@
 from typing import List
 import random
-from Individual import Individual
+
+from .Individual import Individual
+
 
 class Mutation:
     def __init__(self):

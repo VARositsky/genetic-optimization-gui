@@ -1,9 +1,10 @@
 from typing import List
 import random
-from Individual import Individual
-from Selection import Selection
-from Crossover import Crossover
-from Mutation import Mutation
+
+from .Individual import Individual
+from .Selection import Selection
+from .Crossover import Crossover
+from .Mutation import Mutation
 
 
 class GeneticAlgorithm:
@@ -17,10 +18,10 @@ class GeneticAlgorithm:
         
         self._mutation_probability = mut_prob # Вероятность мутации гена
         self._crossover_probability = cross_prob # Вероятность скрещивания родителей
-        
+
         self._intersection_penalty = intrsc_pen # Штраф за пересечение квадратов
         self._empty_squares_penalty = esqrs_pen # Штраф за "пустые" квадраты
-        
+
         self._FILD_MAX_SIDE_SIZE = 0 # max(width, height), width := max(X_max - X_min), height := max(Y_max, Y_min)
         if points is not None:
             self._set_fild_params()
@@ -147,12 +148,12 @@ class GeneticAlgorithm:
         for i in range(self._population_size):
             population[i].set_fitness(self.fitness(population[i]))
             print(f'{i}) {population[i].get_fitness()}')
-    
+
     def run(self):
-        # while condition:
-        # self.step()
-        pass
-    
+        # В будущем можно будет улучшить, а пока пусть будет это
+        while len(self._history) < self._generation_count:
+            self.step()
+
     def step(self):
         parents = self._selection.tournament_selection(self._history[-1], k=3)
         
@@ -192,6 +193,5 @@ if __name__ == '__main__':
             n = i
     print(n)
     gen.draw_squares(ga.get_points())
-        
+
     '''EXAMPLE'''
-    

@@ -1,5 +1,6 @@
 from typing import List, Tuple
 import random
+
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
