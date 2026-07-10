@@ -32,7 +32,7 @@ class Crossover:
             # Проверяем, сработает ли скрещивание по вероятности
             # Также проверяем M: если квадрат всего 1 или 2, двухточечный разрез невозможен
             if random.random() > crossover_prob or M < 3:
-                # Скрещивание НЕ происходит. Создаем точные копии родителей
+                # Создаем точные копии родителей
                 child1 = Individual(M, bounds, coeff1, init=False)
                 child1.set_chromosomes(list(chromosomes1))
                 
