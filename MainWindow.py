@@ -487,11 +487,7 @@ class MainWindow(qtw.QMainWindow):
         self.canvas_quality.draw()
 
     def load_points_from_file(self):
-        file_name, ok = qtw.QInputDialog.getText(
-            self,
-            "Загрузить точки",
-            "Введите путь к файлу .json или .txt:"
-        )
+        file_name, ok = qtw.QInputDialog.getText(self, "Загрузить точки", "Введите путь к файлу .json или .txt:")
 
         if not ok or not file_name.strip():
             return
@@ -520,18 +516,10 @@ class MainWindow(qtw.QMainWindow):
 
     def save_points_to_file(self):
         if not self.input_points:
-            qtw.QMessageBox.critical(
-                self,
-                "Ошибка сохранения",
-                "Нет точек для сохранения."
-            )
+            qtw.QMessageBox.critical(self, "Ошибка сохранения", "Нет точек для сохранения.")
             return
 
-        file_name, ok = qtw.QInputDialog.getText(
-            self,
-            "Сохранить точки",
-            "Введите путь для сохранения .json или .txt:"
-        )
+        file_name, ok = qtw.QInputDialog.getText(self, "Сохранить точки", "Введите путь для сохранения .json или .txt:")
 
         if not ok or not file_name.strip():
             return
