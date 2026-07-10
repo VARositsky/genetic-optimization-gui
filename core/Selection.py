@@ -1,6 +1,7 @@
 from typing import List, Tuple
-from Individual import Individual
 import random
+
+from .Individual import Individual
 
 
 class Selection:

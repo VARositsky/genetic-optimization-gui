@@ -1,6 +1,8 @@
 from typing import List, Tuple
 import random
-from Individual import Individual
+
+from .Individual import Individual
+
 
 class Crossover:
     def __init__(self):

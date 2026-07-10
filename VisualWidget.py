@@ -1,7 +1,11 @@
 import sys
+
 import PyQt5.QtWidgets as qtw
 from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QBrush, QColor, QPen
+
+
+
 
 class VisualWidget(qtw.QGraphicsView):
     def __init__(self, points=None, squares=None, parent=None):
