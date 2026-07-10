@@ -65,7 +65,7 @@ class GeneticAlgorithm:
     def _create_population(self):
         """Создает случайную популяцию"""
         population = [Individual(self._square_count,
-                                 (self._FILD_X_MIN, self._FILD_X_MIN, 
+                                 (self._FILD_X_MIN, self._FILD_Y_MIN, 
                                   self._FILD_X_MAX, self._FILD_Y_MAX),
                                  1/(self._FILD_MAX_SIDE_SIZE / self._square_count)) for _ in range(self._population_size)]
         return population
@@ -87,61 +87,47 @@ class GeneticAlgorithm:
         self._FILD_Y_MIN = mn_y
         print(self._FILD_MAX_SIDE_SIZE, self._FILD_X_MAX, self._FILD_X_MIN, self._FILD_Y_MAX, self._FILD_Y_MIN)
 
-    def fitness(self, Individualual: Individual) -> float:
-        """
-        Считает фитнес-функцию для одного индивидуума.
-        F = C - lambda * K
-        """
-        squares = Individualual.get_chromosomes()
-        M = len(squares)
-        
-        # Считаем количество пересечений между квадратами (K)
+
+    def fitness(self, individual: Individual) -> float:
+        squares = individual.get_chromosomes()
+
         intersections = 0
-        
-        for i in range(M):
+
+        for i in range(len(squares)):
             x1, y1, w1 = squares[i]
-            for j in range(i + 1, M):
+
+            for j in range(i + 1, len(squares)):
                 x2, y2, w2 = squares[j]
-                
-                # Проверяем пересечение двух квадратов по осям X и Y
+
                 not_intersect_x = (x1 + w1 < x2) or (x2 + w2 < x1)
                 not_intersect_y = (y1 + w1 < y2) or (y2 + w2 < y1)
-                
+
                 if not (not_intersect_x or not_intersect_y):
                     intersections += 1
-                    
-        # Считаем количество уникальных покрытых точек (C)
-        covered_points_count = 0        
-        for px, py in self._points:
-            is_covered = False
-            for x, y, w in squares:
-                # Точка внутри квадрата (включая границы)
-                if (x <= px <= x + w) and (y <= py <= y + w):
-                    is_covered = True
-                    break
-            if is_covered:
-                covered_points_count += 1
-        
-        empty_squares_count = 0
-        size_efficiency_penalty = 0.0
-        
-        for x, y, w in squares:
-            points_in_square = 0
-            for px, py in self._points:
-                if (x <= px <= x + w) and (y <= py <= y + w):
-                    points_in_square += 1
-            
-            if points_in_square == 0:
-                # Квадрат пустой
-                empty_squares_count += 1
-            else:
-                # Квадрат не пустой, оценим его эффективность:
-                size_efficiency_penalty += (w ** 2) / points_in_square
 
-        return 5 * covered_points_count \
-                - self._intersection_penalty * intersections ** 2 \
-                - self._empty_squares_penalty * empty_squares_count \
-                - 0.05 * size_efficiency_penalty 
+        covered_points = set()
+        empty_squares_count = 0
+        area_penalty = 0.0
+
+        for square_index, (x, y, w) in enumerate(squares):
+            points_in_square = 0
+
+            for point_index, (px, py) in enumerate(self._points):
+                if x <= px <= x + w and y <= py <= y + w:
+                    covered_points.add(point_index)
+                    points_in_square += 1
+
+            if points_in_square == 0:
+                empty_squares_count += 1
+
+            area_penalty += w * w
+
+        covered_reward = 10.0 * len(covered_points)
+        intersection_penalty = max(1.0, self._intersection_penalty * 50.0) * (intersections ** 2)
+        empty_penalty = self._empty_squares_penalty * empty_squares_count
+        size_penalty = 0.001 * area_penalty
+
+        return covered_reward - intersection_penalty - empty_penalty - size_penalty
     
     def _eval_fitness(self, population: List[Individual]) -> None:
         """И значение целевой функции"""

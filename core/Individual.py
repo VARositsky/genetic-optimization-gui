@@ -16,12 +16,23 @@ class Individual:
     
     def _generate_chromosomes(self):
         chromosomes = []
+
+        x_min, y_min, x_max, y_max = self._bounds
+        field_size = max(x_max - x_min, y_max - y_min)
+
+        max_w = max(1.0, field_size / max(1, self._c_squares) * 1.5)
+
         for _ in range(self._c_squares):
-            x = random.randint(self._bounds[0], self._bounds[2])
-            y = random.randint(self._bounds[1], self._bounds[3])
-            w = max(1, random.expovariate(self._coeff)) # <--- изменить | vrsn 09.07
-            gen = (x, y, w)            
-            chromosomes.append(gen)
+            w = random.uniform(1.0, max_w)
+
+            max_x_for_left_corner = max(x_min, x_max - w)
+            max_y_for_left_corner = max(y_min, y_max - w)
+
+            x = random.uniform(x_min, max_x_for_left_corner)
+            y = random.uniform(y_min, max_y_for_left_corner)
+
+            chromosomes.append((x, y, w))
+
         return chromosomes
 
     def _validate_gen(self, gen):

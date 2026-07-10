@@ -1,5 +1,5 @@
 import sys
-
+import os
 import PyQt5.QtWidgets as qtw
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox
@@ -50,8 +50,13 @@ class MainWindow(qtw.QMainWindow):
         self.button_generate.clicked.connect(self.generate_random_points_clicked)
         points_box.addWidget(self.button_generate)
         self.button_load = qtw.QPushButton("Загрузить точки")
-        self.button_load.clicked.connect(self.nothing)  # Написать функцию
+        self.button_load.clicked.connect(self.load_points_from_file)
         points_box.addWidget(self.button_load)
+
+        self.button_save_points = qtw.QPushButton("Сохранить точки")
+        self.button_save_points.clicked.connect(self.save_points_to_file)
+        points_box.addWidget(self.button_save_points)
+
         self.button_manually = qtw.QPushButton("Ввести точки вручную")
         self.button_manually.clicked.connect(self.manual_points_input)
         points_box.addWidget(self.button_manually)
@@ -92,7 +97,7 @@ class MainWindow(qtw.QMainWindow):
         self.spin_mutation.setRange(MIN_PROB, MAX_PROB)
         self.spin_mutation.setSingleStep(SINGLE_STEP_VALUE)
         self.spin_mutation.setDecimals(DECIMALS_NUM)
-        self.spin_mutation.setValue(START_PROB)
+        self.spin_mutation.setValue(0.15)
         param_form.addRow("Вероятность мутации", self.spin_mutation)
 
         # Задание вероятности скрещивания
@@ -100,7 +105,7 @@ class MainWindow(qtw.QMainWindow):
         self.spin_crossover.setRange(MIN_PROB, MAX_PROB)
         self.spin_crossover.setSingleStep(SINGLE_STEP_VALUE)
         self.spin_crossover.setDecimals(DECIMALS_NUM)
-        self.spin_crossover.setValue(START_PROB)
+        self.spin_crossover.setValue(0.8)
         param_form.addRow("Вероятность скрещивания", self.spin_crossover)
 
         # Задание штрафа за пересечение квадратов
@@ -141,7 +146,7 @@ class MainWindow(qtw.QMainWindow):
 
         # Кнопка сохранения поколений
         self.save_button = qtw.QPushButton("Сохранить популяции")
-        self.save_button.clicked.connect(self.nothing)  # Написать функцию
+        self.save_button.clicked.connect(self.save_populations_to_file)
         left_splitter.addWidget(self.save_button)
 
     def setup_central_panel(self, main_splitter):
@@ -407,9 +412,9 @@ class MainWindow(qtw.QMainWindow):
             qtw.QMessageBox.critical(self, "Ошибка ввода", f"Некорректный формат точек:\n{error}")
             return
 
-        self.points = points
-        self.points_info.setText(f"Точек: {len(self.points)}")
-        self.visual_widget.set_data(self.points, [])
+        self.input_points = points
+        self.points_info.setText(f"Точек: {len(self.input_points)}")
+        self.visual_widget.set_data(self.input_points, [])
 
     def draw_fitness_plot(self):
         self.ax_quality.clear()
@@ -452,7 +457,154 @@ class MainWindow(qtw.QMainWindow):
         self.ax_quality.grid(True)
 
         self.canvas_quality.draw()
+    
+    def _normalize_file_path(self, file_path):
+        file_path = file_path.strip().strip('"').strip("'")
+        file_path = os.path.expanduser(file_path)
+        return os.path.abspath(file_path)
 
+    def _add_selected_extension(self, file_name, default_extension):
+        if file_name.lower().endswith((".json", ".txt")):
+            return file_name
+
+        return file_name + default_extension
+
+    def _reset_algorithm_state_after_points_change(self):
+        self.algorithm = None
+        self.current_population = None
+        self.current_step = 0
+        self.max_computed_step = 0
+
+        self.table_widget.setRowCount(0)
+        self.label_population_num.setText("Рассматриваемая популяция: 0")
+        self.label_individuum_fitness.setText("Fitness индивидуума: 0")
+
+        self.ax_quality.clear()
+        self.ax_quality.set_title("Изменение функции качества")
+        self.ax_quality.set_xlabel("Поколение")
+        self.ax_quality.set_ylabel("Fitness")
+        self.ax_quality.grid(True)
+        self.canvas_quality.draw()
+
+    def load_points_from_file(self):
+        file_name, ok = qtw.QInputDialog.getText(
+            self,
+            "Загрузить точки",
+            "Введите путь к файлу .json или .txt:"
+        )
+
+        if not ok or not file_name.strip():
+            return
+
+        file_name = self._normalize_file_path(file_name)
+
+        try:
+            self.input_points = DataUtils.load_points_from_file(file_name)
+        except Exception as error:
+            qtw.QMessageBox.critical(
+                self,
+                "Ошибка загрузки",
+                f"Не удалось загрузить точки:\n{error}"
+            )
+            return
+
+        self.points_info.setText(f"Точек: {len(self.input_points)}")
+        self.visual_widget.set_data(self.input_points, [])
+        self._reset_algorithm_state_after_points_change()
+
+        qtw.QMessageBox.information(
+            self,
+            "Загрузка выполнена",
+            f"Точки успешно загружены:\n{file_name}"
+        )
+
+    def save_points_to_file(self):
+        if not self.input_points:
+            qtw.QMessageBox.critical(
+                self,
+                "Ошибка сохранения",
+                "Нет точек для сохранения."
+            )
+            return
+
+        file_name, ok = qtw.QInputDialog.getText(
+            self,
+            "Сохранить точки",
+            "Введите путь для сохранения .json или .txt:"
+        )
+
+        if not ok or not file_name.strip():
+            return
+
+        file_name = self._normalize_file_path(file_name)
+        file_name = self._add_selected_extension(file_name, ".json")
+
+        try:
+            DataUtils.save_points_to_file(file_name, self.input_points)
+        except Exception as error:
+            qtw.QMessageBox.critical(
+                self,
+                "Ошибка сохранения",
+                f"Не удалось сохранить точки:\n{error}"
+            )
+            return
+
+        qtw.QMessageBox.information(
+            self,
+            "Сохранение выполнено",
+            f"Точки успешно сохранены:\n{file_name}"
+        )
+
+    def save_populations_to_file(self):
+        if self.algorithm is None:
+            qtw.QMessageBox.critical(
+                self,
+                "Ошибка сохранения",
+                "Сначала запустите алгоритм."
+            )
+            return
+
+        history = self.algorithm.get_history()
+
+        if not history:
+            qtw.QMessageBox.critical(
+                self,
+                "Ошибка сохранения",
+                "История популяций пуста."
+            )
+            return
+
+        file_name, ok = qtw.QInputDialog.getText(
+            self,
+            "Сохранить популяции",
+            "Введите путь для сохранения .json или .txt:"
+        )
+
+        if not ok or not file_name.strip():
+            return
+
+        file_name = self._normalize_file_path(file_name)
+        file_name = self._add_selected_extension(file_name, ".json")
+
+        try:
+            DataUtils.save_populations_to_file(
+                file_name,
+                self.input_points,
+                history
+            )
+        except Exception as error:
+            qtw.QMessageBox.critical(
+                self,
+                "Ошибка сохранения",
+                f"Не удалось сохранить популяции:\n{error}"
+            )
+            return
+
+        qtw.QMessageBox.information(
+            self,
+            "Сохранение выполнено",
+            f"Популяции успешно сохранены:\n{file_name}"
+        )
 
 
 if __name__ == "__main__":
