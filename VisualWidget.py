@@ -10,39 +10,66 @@ from PyQt5.QtGui import QBrush, QColor, QPen
 class VisualWidget(qtw.QGraphicsView):
     def __init__(self, points=None, squares=None, parent=None):
         super().__init__(parent)
-
+        self.colors = None
         self.scene = qtw.QGraphicsScene(self)
         self.setScene(self.scene)
         self.setDragMode(self.ScrollHandDrag)
         self.setTransformationAnchor(self.AnchorUnderMouse)
         self.setMouseTracking(True)
         self.cursor_cords = None
-        points = points if points is not None else []
-        squares = squares if squares is not None else []
-        self.set_data(points, squares)
+        self.set_data(points, squares, update=False)
+        self.set_theme("white")
 
-    def set_data(self, points, squares):
+    def set_theme(self, theme):
+        themes = {
+            "white": {
+                "bg_color": Qt.white,
+                "sqr_color": QColor(0, 128, 255, 80),
+                "sqr_border_color": Qt.blue,
+                "point_color": Qt.red,
+                "text_color": Qt.black
+            },
+            "dark": {
+                "bg_color": QColor(50, 50, 50),
+                "sqr_color": QColor(209, 195, 46),
+                "sqr_border_color": QColor(255, 112, 11, 80),
+                "point_color": QColor(209, 114, 46),
+                "text_color": Qt.white
+            }
+        }
+
+        self.colors = themes.get(theme, themes["white"])
+        self.draw()
+
+    def set_data(self, points, squares, update=True):
+        self.points = points if points is not None else []
+        self.squares = squares if squares is not None else []
+        if update: self.draw()
+
+    def draw(self):
         self.scene.clear()
+        self.scene.setBackgroundBrush(self.colors["bg_color"])
 
         self.cursor_cords = qtw.QGraphicsTextItem()
         self.cursor_cords.setZValue(1000)
         self.cursor_cords.setFlag(qtw.QGraphicsTextItem.ItemIgnoresTransformations)
         self.scene.addItem(self.cursor_cords)
+        self.cursor_cords.setDefaultTextColor(self.colors["text_color"])
         self.cursor_cords.setVisible(False)
 
-        for x, y, w in squares:
+        for x, y, w in self.squares:
             rect_item = qtw.QGraphicsRectItem(x, y, w, w)
-            color = QColor(0, 128, 255, 80)
+            color = self.colors["sqr_color"]
             rect_item.setBrush(QBrush(color))
-            pen = QPen(Qt.blue, 5)
+            pen = QPen(self.colors["sqr_border_color"], 5)
             pen.setCosmetic(True)
             rect_item.setPen(pen)
             self.scene.addItem(rect_item)
 
-        for x, y in points:
+        for x, y in self.points:
             point_item = qtw.QGraphicsEllipseItem(-6, -6, 12, 12)
             point_item.setPos(x, y)
-            point_item.setBrush(QBrush(Qt.red))
+            point_item.setBrush(QBrush(self.colors["point_color"]))
             point_item.setFlag(qtw.QGraphicsItem.ItemIgnoresTransformations)
             self.scene.addItem(point_item)
 
@@ -80,6 +107,7 @@ class VisualWidget(qtw.QGraphicsView):
 if __name__ == '__main__':
     app = qtw.QApplication(sys.argv)
     v = VisualWidget()
+    v.set_theme("dark")
     v.set_data(points=[(100, 55), (464, 85)], squares=[(0, -10, 200), (1, 10, 50)])
     v.show()
     sys.exit(app.exec_())
