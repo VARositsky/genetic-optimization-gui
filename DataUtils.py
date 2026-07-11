@@ -1,6 +1,6 @@
 import json
 import random
-
+import os
 
 class DataUtils:
     @staticmethod
@@ -14,6 +14,19 @@ class DataUtils:
     def _format_number(value):
         value = float(value)
         return str(int(value)) if value.is_integer() else f"{value:.10g}"
+
+    @staticmethod
+    def normalize_file_path(file_path):
+        file_path = file_path.strip().strip('"').strip("'")
+        file_path = os.path.expanduser(file_path)
+        return os.path.abspath(file_path)
+
+    @staticmethod
+    def add_selected_extension(file_name, default_extension):
+        if file_name.lower().endswith((".json", ".txt")):
+            return file_name
+
+        return file_name + default_extension
 
     @staticmethod
     def _parse_point(raw_point):

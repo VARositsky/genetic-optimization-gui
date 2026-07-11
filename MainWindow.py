@@ -20,6 +20,7 @@ class MainWindow(qtw.QMainWindow):
         self.current_population = None
         self.input_points = None
         self.algorithm = None
+        self.graph_colors = GRAPH_THEMES["white"]
         self.current_step = 0
         self.max_computed_step = 0
         self.setup_ui()
@@ -36,9 +37,27 @@ class MainWindow(qtw.QMainWindow):
         layout.setContentsMargins(*MARGINS)
         layout.addWidget(main_splitter)
 
+        self.setup_menu()
         self.setup_left_panel(main_splitter)
         self.setup_central_panel(main_splitter)
         self.setup_right_panel(main_splitter)
+
+    def setup_menu(self):
+        menubar = self.menuBar()
+        theme_menu = menubar.addMenu("&Тема")
+
+        self.theme_group = qtw.QActionGroup(self)
+        self.theme_group.setExclusive(True)
+
+        light_theme_action = qtw.QAction("Светлая", self, checkable=True)
+        self.theme_group.addAction(light_theme_action)
+        light_theme_action.setChecked(True)
+
+        dark_theme_action = qtw.QAction("Тёмная", self, checkable=True)
+        self.theme_group.addAction(dark_theme_action)
+        theme_menu.addActions([light_theme_action, dark_theme_action])
+
+        self.theme_group.triggered.connect(self.theme_changed)
 
     def setup_left_panel(self, main_splitter):
         left_splitter = qtw.QSplitter(Qt.Vertical)
@@ -97,7 +116,7 @@ class MainWindow(qtw.QMainWindow):
         self.spin_mutation.setRange(MIN_PROB, MAX_PROB)
         self.spin_mutation.setSingleStep(SINGLE_STEP_VALUE)
         self.spin_mutation.setDecimals(DECIMALS_NUM)
-        self.spin_mutation.setValue(0.15)
+        self.spin_mutation.setValue(START_MUT_PROB)
         param_form.addRow("Вероятность мутации", self.spin_mutation)
 
         # Задание вероятности скрещивания
@@ -105,17 +124,17 @@ class MainWindow(qtw.QMainWindow):
         self.spin_crossover.setRange(MIN_PROB, MAX_PROB)
         self.spin_crossover.setSingleStep(SINGLE_STEP_VALUE)
         self.spin_crossover.setDecimals(DECIMALS_NUM)
-        self.spin_crossover.setValue(0.8)
+        self.spin_crossover.setValue(START_CROSS_PROB)
         param_form.addRow("Вероятность скрещивания", self.spin_crossover)
 
         # Задание штрафа за пересечение квадратов
-        self.spin_intersection_penalty= qtw.QDoubleSpinBox()
+        self.spin_intersection_penalty = qtw.QDoubleSpinBox()
         self.spin_intersection_penalty.setRange(MIN_PENALTY, MAX_PENALTY)
         self.spin_intersection_penalty.setSingleStep(SINGLE_STEP_VALUE)
         self.spin_intersection_penalty.setValue(START_PENALTY)
         param_form.addRow("Штраф за пересечение квадратов", self.spin_intersection_penalty)
 
-        # Задание штрафа за
+        # Задание штрафа за пустые квадраты
         self.spin_esqrs_pen = qtw.QDoubleSpinBox()
         self.spin_esqrs_pen.setRange(MIN_PENALTY, MAX_PENALTY)
         self.spin_esqrs_pen.setSingleStep(SINGLE_STEP_VALUE)
@@ -142,6 +161,7 @@ class MainWindow(qtw.QMainWindow):
         self.table_widget.cellClicked.connect(self.on_table_cell_clicked)
         self.table_widget.setEditTriggers(qtw.QTableWidget.NoEditTriggers)
         self.table_widget.horizontalHeader().setStretchLastSection(True)
+        self.table_widget.verticalHeader().setVisible(False)
         left_splitter.addWidget(self.table_widget)
 
         # Кнопка сохранения поколений
@@ -238,9 +258,6 @@ class MainWindow(qtw.QMainWindow):
         self.ax_quality.set_ylabel("Fitness")
         self.ax_quality.grid(True)
         self.canvas_quality.draw()
-
-    def nothing(self):
-        pass
 
     def add_table_row(self, gen_index):
         pop_fitness = [x.get_fitness() for x in self.algorithm.get_population(gen_index - 1)]
@@ -417,19 +434,24 @@ class MainWindow(qtw.QMainWindow):
         self.visual_widget.set_data(self.input_points, [])
 
     def draw_fitness_plot(self):
+        self.figure_quality.set_facecolor(self.graph_colors["background_color"])
+        self.ax_quality.set_facecolor(self.graph_colors["background_color"])
         self.ax_quality.clear()
 
         best_fitness = []
         average_fitness = []
-        for population in self.algorithm.get_history():
-            best_fitness.append(population[0].get_fitness())
-            average_fitness.append(0)
-            for x in population:
-                best_fitness[-1] = max(x.get_fitness(), best_fitness[-1])
-                average_fitness[-1] += x.get_fitness()
-            average_fitness[-1] /= self.algorithm.get_population_size()
+        generations = []
 
-        generations = list(range(1, len(self.algorithm.get_history()) + 1))
+        if self.algorithm is not None:
+            for population in self.algorithm.get_history():
+                best_fitness.append(population[0].get_fitness())
+                average_fitness.append(0)
+                for x in population:
+                    best_fitness[-1] = max(x.get_fitness(), best_fitness[-1])
+                    average_fitness[-1] += x.get_fitness()
+                average_fitness[-1] /= self.algorithm.get_population_size()
+
+            generations = list(range(1, len(self.algorithm.get_history()) + 1))
 
         self.ax_quality.plot(
             generations,
@@ -438,7 +460,7 @@ class MainWindow(qtw.QMainWindow):
             markersize=3,
             linewidth=1,
             label="Лучший результат",
-            color="red"
+            color=self.graph_colors["best_color"]
         )
 
         self.ax_quality.plot(
@@ -448,26 +470,17 @@ class MainWindow(qtw.QMainWindow):
             markersize=3,
             linewidth=1,
             label="Средний результат",
-            color="blue"
+            color=self.graph_colors["average_color"]
         )
 
-        self.ax_quality.set_title("Изменение функции качества")
-        self.ax_quality.set_xlabel("Поколение")
-        self.ax_quality.set_ylabel("Fitness")
-        self.ax_quality.grid(True)
+        self.ax_quality.set_title("Изменение функции качества", color=self.graph_colors["text_color"])
+        self.ax_quality.set_xlabel("Поколение", color=self.graph_colors["text_color"])
+        self.ax_quality.set_ylabel("Fitness", color=self.graph_colors["text_color"])
+        self.ax_quality.tick_params(color=self.graph_colors["text_color"], labelcolor=self.graph_colors["text_color"])
+        self.ax_quality.grid(True, color=self.graph_colors["grid_color"])
+        self.ax_quality.legend()
 
         self.canvas_quality.draw()
-    
-    def _normalize_file_path(self, file_path):
-        file_path = file_path.strip().strip('"').strip("'")
-        file_path = os.path.expanduser(file_path)
-        return os.path.abspath(file_path)
-
-    def _add_selected_extension(self, file_name, default_extension):
-        if file_name.lower().endswith((".json", ".txt")):
-            return file_name
-
-        return file_name + default_extension
 
     def _reset_algorithm_state_after_points_change(self):
         self.algorithm = None
@@ -487,12 +500,17 @@ class MainWindow(qtw.QMainWindow):
         self.canvas_quality.draw()
 
     def load_points_from_file(self):
-        file_name, ok = qtw.QInputDialog.getText(self, "Загрузить точки", "Введите путь к файлу .json или .txt:")
+        file_name, _ = qtw.QFileDialog.getOpenFileName(
+            self,
+            "Загрузить точки",
+            "",
+            "Текстовый файл (*.txt);;JSON-файл (*.json)"
+        )
 
-        if not ok or not file_name.strip():
+        if not file_name.strip():
             return
 
-        file_name = self._normalize_file_path(file_name)
+        file_name = DataUtils.normalize_file_path(file_name)
 
         try:
             self.input_points = DataUtils.load_points_from_file(file_name)
@@ -516,16 +534,25 @@ class MainWindow(qtw.QMainWindow):
 
     def save_points_to_file(self):
         if not self.input_points:
-            qtw.QMessageBox.critical(self, "Ошибка сохранения", "Нет точек для сохранения.")
+            qtw.QMessageBox.critical(
+                self,
+                "Ошибка сохранения",
+                "Нет точек для сохранения."
+            )
             return
 
-        file_name, ok = qtw.QInputDialog.getText(self, "Сохранить точки", "Введите путь для сохранения .json или .txt:")
+        file_name, _ = qtw.QFileDialog.getSaveFileName(
+            self,
+            "Сохранить точки",
+            "",
+            "Текстовый файл (*.txt);;JSON-файл (*.json)"
+        )
 
-        if not ok or not file_name.strip():
+        if not file_name.strip():
             return
 
-        file_name = self._normalize_file_path(file_name)
-        file_name = self._add_selected_extension(file_name, ".json")
+        file_name = DataUtils.normalize_file_path(file_name)
+        file_name = DataUtils.add_selected_extension(file_name, ".json")
 
         try:
             DataUtils.save_points_to_file(file_name, self.input_points)
@@ -562,17 +589,18 @@ class MainWindow(qtw.QMainWindow):
             )
             return
 
-        file_name, ok = qtw.QInputDialog.getText(
+        file_name, _ = qtw.QFileDialog.getSaveFileName(
             self,
             "Сохранить популяции",
-            "Введите путь для сохранения .json или .txt:"
+            "",
+            "Текстовый файл (*.txt);;JSON-файл (*.json)"
         )
 
-        if not ok or not file_name.strip():
+        if not file_name.strip():
             return
 
-        file_name = self._normalize_file_path(file_name)
-        file_name = self._add_selected_extension(file_name, ".json")
+        file_name = DataUtils.normalize_file_path(file_name)
+        file_name = DataUtils.add_selected_extension(file_name, ".json")
 
         try:
             DataUtils.save_populations_to_file(
@@ -594,6 +622,16 @@ class MainWindow(qtw.QMainWindow):
             f"Популяции успешно сохранены:\n{file_name}"
         )
 
+    def theme_changed(self, action):
+        settings = THEMES.get(action.text(), None)
+        if not settings:
+            return
+
+        style, graph_theme, visual_theme = settings
+        self.visual_widget.set_theme(visual_theme)
+        qtw.QApplication.instance().setStyleSheet(style)
+        self.graph_colors = GRAPH_THEMES[graph_theme]
+        self.draw_fitness_plot()
 
 if __name__ == "__main__":
     app = qtw.QApplication(sys.argv)
