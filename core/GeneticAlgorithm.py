@@ -8,7 +8,8 @@ from .Mutation import Mutation
 
 
 class GeneticAlgorithm:
-    def __init__(self, points=None, pop_size=30, square_count=6, gen_count=200, mut_prob=0.25, cross_prob=0.75, intrsc_pen=3.5, esqrs_pen=6):
+    def __init__(self, points=None, pop_size=20, square_count=1, gen_count=200, 
+                 mut_prob=0.25, cross_prob=0.7, covering_rew=50, intrsc_pen=3, esqrs_pen=20):
         self._history = [] # История эволюции
         
         self._points = points if points is not None else [] # Точки на плоскости
@@ -19,10 +20,11 @@ class GeneticAlgorithm:
         self._mutation_probability = mut_prob # Вероятность мутации гена
         self._crossover_probability = cross_prob # Вероятность скрещивания родителей
 
+        self._covering_rew = covering_rew # Награда за покрытие точки
         self._intersection_penalty = intrsc_pen # Штраф за пересечение квадратов
         self._empty_squares_penalty = esqrs_pen # Штраф за "пустые" квадраты
 
-        self._FILD_MAX_SIDE_SIZE = 0 # max(width, height), width := max(X_max - X_min), height := max(Y_max, Y_min)
+        # self._FILD_MAX_SIDE_SIZE = 0 # max(width, height), width := max(X_max - X_min), height := max(Y_max, Y_min)
         if points is not None:
             self._set_fild_params()
         
@@ -32,6 +34,11 @@ class GeneticAlgorithm:
 
     def get_points(self):
         return self._points
+    
+    def set_point(self, points: list):
+        if points is not None:
+            self._points = points[:]
+            self._set_fild_params()
 
     def get_square_count(self):
         return self._square_count
@@ -58,16 +65,17 @@ class GeneticAlgorithm:
 
     def initialize(self) -> None:
         """Инициализирует алгоритм"""
-        self._population: List[Individual] = self._create_population()
-        self._eval_fitness(self._population)
-        self._history.append(self._population)
+        population: List[Individual] = self._create_population()
+        self._eval_fitness(population)
+        self._history.append(population)
         
     def _create_population(self):
         """Создает случайную популяцию"""
+        # print('_create_population: ', self._points)
         population = [Individual(self._square_count,
                                  (self._FILD_X_MIN, self._FILD_Y_MIN, 
                                   self._FILD_X_MAX, self._FILD_Y_MAX),
-                                 1/(self._FILD_MAX_SIDE_SIZE / self._square_count)) for _ in range(self._population_size)]
+                                 self._points) for _ in range(self._population_size)]
         return population
         
     def _set_fild_params(self):
@@ -86,7 +94,6 @@ class GeneticAlgorithm:
         self._FILD_Y_MAX = mx_y
         self._FILD_Y_MIN = mn_y
         print(self._FILD_MAX_SIDE_SIZE, self._FILD_X_MAX, self._FILD_X_MIN, self._FILD_Y_MAX, self._FILD_Y_MIN)
-
 
     def fitness(self, individual: Individual) -> float:
         squares = individual.get_chromosomes()
@@ -122,7 +129,7 @@ class GeneticAlgorithm:
 
             area_penalty += w * w
 
-        covered_reward = 10.0 * len(covered_points)
+        covered_reward = self._covering_rew * len(covered_points)
         intersection_penalty = max(1.0, self._intersection_penalty * 50.0) * (intersections ** 2)
         empty_penalty = self._empty_squares_penalty * empty_squares_count
         size_penalty = 0.001 * area_penalty
