@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 import random
 from math import ceil, sqrt
 
@@ -9,8 +9,10 @@ from .Mutation import Mutation
 
 
 class GeneticAlgorithm:
-    def __init__(self, points=None, pop_size=70, square_count=6, gen_count=500, mut_prob=0.25, cross_prob=0.75, 
-                 covering_rew=15.0, uncovering_pen=30, intrsc_pen=5.0, esqrs_pen=23.0, area_pen=0.00001):
+    """Класс генетического алгоритма"""
+    def __init__(self, points=None, pop_size=80, square_count=6, gen_count=500, mut_prob=0.29, cross_prob=0.76, 
+                 k_best_percent=0.25, covering_rew=12, uncovering_pen=27, intrsc_pen=12.0, esqrs_pen=23, area_pen=0.0008):
+        
         self._history = [] # История эволюции
         
         self._points = points if points is not None else [] # Точки на плоскости
@@ -21,6 +23,8 @@ class GeneticAlgorithm:
         self._mutation_probability = mut_prob # Вероятность мутации гена
         self._crossover_probability = cross_prob # Вероятность скрещивания родителей
 
+        self._k_best_percent = k_best_percent # Процент лучших индивидуумов в популяции, проходящих между поколениями без изменений
+
         self._covering_rew = covering_rew # Награда за покрытие точки
         self._uncovering_pen = uncovering_pen # Штраф за непокрытые точки
         self._intersection_penalty = intrsc_pen # Штраф за пересечение квадратов
@@ -30,12 +34,12 @@ class GeneticAlgorithm:
         if points is not None:
             self._set_fild_params() # Определяет параметры поля
         
-        self._selection: Selection = Selection(Selection.RANK) # Определяет процесс селекции
-        self._crossover: Crossover = Crossover() # Определяет процесс скрещивания
-        self._mutation: Mutation = Mutation() # Определяет процесс мутации
+        self._selection: Selection = Selection() # Определяет процесс селекции
+        self._crossover: Crossover = Crossover(self._crossover_probability) # Определяет процесс скрещивания
+        self._mutation: Mutation = Mutation(self._mutation_probability) # Определяет процесс мутации
 
     def get_points(self):
-        return self._points
+        return self._points        
     
     def set_point(self, points: list):
         if points is not None:
@@ -61,18 +65,25 @@ class GeneticAlgorithm:
         return self._history
 
     def get_population(self, generation_number) -> List[Individual]:
+        """
+        Возвращает популяцию определенного поколения
+        """
         if 0 <= generation_number < len(self._history):
             return self._history[generation_number]
         raise IndexError(f"Номер поколения {generation_number} вне диапазона (0..{len(self._history)-1})")
 
     def initialize(self) -> None:
-        """Инициализирует алгоритм"""
-        population: List[Individual] = self._create_population()
+        """
+        Инициализирует алгоритм
+        """
+        population = self._create_population()
         self._eval_fitness(population)
         self._history.append(population)
         
-    def _create_population(self):
-        """Создает случайную популяцию"""
+    def _create_population(self) -> List[Individual]:
+        """
+        Возвращает случайную популяцию
+        """
         population = [Individual(self._square_count,
                                  (self._FILD_X_MIN, self._FILD_Y_MIN, 
                                   self._FILD_X_MAX, self._FILD_Y_MAX),
@@ -80,7 +91,9 @@ class GeneticAlgorithm:
         return population
         
     def _set_fild_params(self):
-        """Определяет параметры квадратной области, в которой находятся точки"""
+        """
+        Определяет параметры квадратной области, в которой находятся точки
+        """
         mx_x, mn_x = float('-inf'), float('+inf')
         mx_y, mn_y = float('-inf'), float('+inf')
         for x, y in self._points:
@@ -94,7 +107,6 @@ class GeneticAlgorithm:
         
         self._FILD_Y_MAX = mx_y
         self._FILD_Y_MIN = mn_y
-        print(self._FILD_MAX_SIDE_SIZE, self._FILD_X_MAX, self._FILD_X_MIN, self._FILD_Y_MAX, self._FILD_Y_MIN)
 
     def fitness(self, individual: Individual) -> float:
         """
@@ -104,8 +116,7 @@ class GeneticAlgorithm:
             - sqrt(D * total_area)
             - E * uncovered_points
         """
-
-        squares = individual.get_chromosomes()
+        squares = individual.get_chromosome()
 
         covered_points, empty_squares = self._calculate_covering(squares)
         intersection_area = self._calculate_intersection_area(squares)
@@ -114,13 +125,15 @@ class GeneticAlgorithm:
         return (
             self._covering_rew * covered_points
             - self._intersection_penalty * intersection_area
-            - self._empty_squares_penalty * empty_squares
+            - (self._empty_squares_penalty * empty_squares) ** 2
             - sqrt(self._area_penalty * total_area)
             - self._uncovering_pen * (len(self._points) - covered_points)
         )
     
-    def _calculate_covering(self, squares):
-        """Возвращает кортеж из кол. покрытых и непокрытых точек"""
+    def _calculate_covering(self, squares) -> Tuple[int, int]:
+        """
+        Возвращает словарь из количества покрытых и непокрытых точек
+        """
         covered_points = set()
         empty_squares = 0
 
@@ -142,7 +155,9 @@ class GeneticAlgorithm:
         return len(covered_points), empty_squares
     
     def _calculate_intersection_area(self, squares):
-        """Возвращает суммарную площадь пересечений"""
+        """
+        Возвращает суммарную площадь пересечений
+        """
         intersection_area = 0.0
 
         for i in range(len(squares)):
@@ -162,34 +177,42 @@ class GeneticAlgorithm:
         return intersection_area
 
     def _calculate_total_area(self, squares):
-        """Возвращает суммарную площадь квадратов"""
+        """
+        Возвращает суммарную площадь квадратов
+        """
         return sum(square.w ** 2 for square in squares)
         
     def _eval_fitness(self, population: List[Individual]) -> None:
-        """И значение целевой функции"""
+        """
+        Определеяет для каждого индивидуума значение его фунции приспособленности
+        """
         for i in range(self._population_size):
             population[i].set_fitness(self.fitness(population[i]))
-            print(f'{i}) {population[i].get_fitness()}')
 
     def run(self):
-        # В будущем можно будет улучшить, а пока пусть будет это
+        """
+        Выполняет алгоритм до конца (пока не будет достигнуто нужное число поколений)
+        """
         while len(self._history) < self._generation_count:
             self.step()
 
     def step(self):
-        K_BEST_PERCENT = 0.25
+        """
+        Выполняет один шаг алгоритма
+        """
+        K_BEST_PERCENT = self._k_best_percent
         proportion = ceil(self._square_count * K_BEST_PERCENT)
         if proportion % 2 != 0:
             proportion += 1
         
         prev_population = self._history[-1]
-        new_population_best = prev_population[:proportion]
+        new_population_best = prev_population[:proportion] # Сохранение лучших без изменений
         
-        parents = self._selection.tournament_selection(prev_population[proportion:], k=3)
+        parents = self._selection.tournament_selection(prev_population[proportion:], k=3) # Выбор родителей
         
-        new_population_children = sorted(self._crossover.do(parents, self._crossover_probability), key=lambda ind: -ind.get_fitness())
+        new_population_children = sorted(self._crossover.do(parents), key=lambda ind: -ind.get_fitness())
         
-        new_population = new_population_best + self._mutation.do(new_population_children, mutation_prob=self._mutation_probability)
+        new_population = new_population_best + self._mutation.do(new_population_children) # Новая популяция
         
         self._eval_fitness(new_population)
         self._history.append(new_population)
@@ -197,7 +220,7 @@ class GeneticAlgorithm:
 
 if __name__ == '__main__':
     '''EXAMPLE'''
-    N = 40
+    N = 100
     ga = GeneticAlgorithm(points=[(random.randint(-100, 100), random.randint(-100, 100)) for _ in range(N)])
     ga.initialize()
     pop = ga.get_population(0)
