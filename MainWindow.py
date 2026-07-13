@@ -23,6 +23,8 @@ class MainWindow(qtw.QMainWindow):
         self.graph_colors = GRAPH_THEMES["white"]
         self.current_step = 0
         self.max_computed_step = 0
+        self.file_dialog_options = qtw.QFileDialog.Options()
+        self.file_dialog_options |= qtw.QFileDialog.DontUseNativeDialog
         self.setup_ui()
         self.show()
 
@@ -44,18 +46,38 @@ class MainWindow(qtw.QMainWindow):
 
     def setup_menu(self):
         menubar = self.menuBar()
-        theme_menu = menubar.addMenu("&Тема")
+
+        self.theme_menu = qtw.QMenu(self)
 
         self.theme_group = qtw.QActionGroup(self)
         self.theme_group.setExclusive(True)
 
-        light_theme_action = qtw.QAction("Светлая", self, checkable=True)
-        self.theme_group.addAction(light_theme_action)
+        light_theme_action = qtw.QAction(
+            "Светлая", self, checkable=True
+        )
         light_theme_action.setChecked(True)
 
-        dark_theme_action = qtw.QAction("Тёмная", self, checkable=True)
+        dark_theme_action = qtw.QAction(
+            "Тёмная", self, checkable=True
+        )
+
+        self.theme_group.addAction(light_theme_action)
         self.theme_group.addAction(dark_theme_action)
-        theme_menu.addActions([light_theme_action, dark_theme_action])
+
+        self.theme_menu.addActions([
+            light_theme_action,
+            dark_theme_action
+        ])
+
+        self.theme_button = qtw.QToolButton(self)
+        self.theme_button.setText("Тема")
+        self.theme_button.setMenu(self.theme_menu)
+        self.theme_button.setPopupMode(qtw.QToolButton.InstantPopup)
+
+        menubar.setCornerWidget(
+            self.theme_button,
+            Qt.TopRightCorner
+        )
 
         self.theme_group.triggered.connect(self.theme_changed)
 
@@ -127,26 +149,59 @@ class MainWindow(qtw.QMainWindow):
         self.spin_crossover.setValue(START_CROSS_PROB)
         param_form.addRow("Вероятность скрещивания", self.spin_crossover)
 
+        # Награда за покрытие точки
+        self.spin_covering_reward = qtw.QDoubleSpinBox()
+        self.spin_covering_reward.setRange(0, 10000)
+        self.spin_covering_reward.setDecimals(3)
+        self.spin_covering_reward.setSingleStep(1)
+        self.spin_covering_reward.setValue(12)
+
+        param_form.addRow("Награда за покрытие точки", self.spin_covering_reward)
+
+        # Штраф за непокрытые точки
+        self.spin_uncovering_penalty = qtw.QDoubleSpinBox()
+        self.spin_uncovering_penalty.setRange(0, 10000)
+        self.spin_uncovering_penalty.setDecimals(3)
+        self.spin_uncovering_penalty.setSingleStep(1)
+        self.spin_uncovering_penalty.setValue(37)
+
+        param_form.addRow("Штраф за непокрытые точки", self.spin_uncovering_penalty)
+
         # Задание штрафа за пересечение квадратов
         self.spin_intersection_penalty = qtw.QDoubleSpinBox()
         self.spin_intersection_penalty.setRange(MIN_PENALTY, MAX_PENALTY)
         self.spin_intersection_penalty.setSingleStep(SINGLE_STEP_VALUE)
-        self.spin_intersection_penalty.setValue(START_PENALTY)
+        self.spin_intersection_penalty.setValue(20)
         param_form.addRow("Штраф за пересечение квадратов", self.spin_intersection_penalty)
 
         # Задание штрафа за пустые квадраты
         self.spin_esqrs_pen = qtw.QDoubleSpinBox()
         self.spin_esqrs_pen.setRange(MIN_PENALTY, MAX_PENALTY)
         self.spin_esqrs_pen.setSingleStep(SINGLE_STEP_VALUE)
-        self.spin_esqrs_pen.setValue(START_PENALTY)
+        self.spin_esqrs_pen.setValue(35)
         param_form.addRow("Штраф за пустые квадраты", self.spin_esqrs_pen)
 
+        self.spin_area_penalty = qtw.QDoubleSpinBox()
+        self.spin_area_penalty.setRange(0, 100)
+        self.spin_area_penalty.setDecimals(6)
+        self.spin_area_penalty.setSingleStep(0.001)
+        self.spin_area_penalty.setValue(0.001)
+
+        param_form.addRow("Штраф за общую площадь", self.spin_area_penalty)
+
+        self.spin_far_empty_penalty = qtw.QDoubleSpinBox()
+        self.spin_far_empty_penalty.setRange(0, 10000)
+        self.spin_far_empty_penalty.setDecimals(3)
+        self.spin_far_empty_penalty.setSingleStep(1)
+        self.spin_far_empty_penalty.setValue(10)
+
+        param_form.addRow('Штраф за удалённые "пустые" квадраты', self.spin_far_empty_penalty)
+
         self.combo_selection_method = qtw.QComboBox()
-        self.combo_selection_method.addItems([
-            "Турнирный отбор",
-            "Рулетка",
-            "Ранжированный отбор"
-        ])
+        self.combo_selection_method.addItem("Турнирный отбор", "tournament")
+        self.combo_selection_method.addItem("Рулетка", "roulette")
+        self.combo_selection_method.addItem("Ранжированный отбор", "rank")
+
         param_form.addRow("Метод отбора родителей", self.combo_selection_method)
 
         # Кнопка запуска алгоритма
@@ -279,10 +334,17 @@ class MainWindow(qtw.QMainWindow):
             pop_size=self.spin_population_size.value(),
             square_count=self.spin_squares_num.value(),
             gen_count=self.spin_generation.value(),
+
             mut_prob=self.spin_mutation.value(),
             cross_prob=self.spin_crossover.value(),
+            selection_method=self.combo_selection_method.currentData(),
+
+            covering_rew=self.spin_covering_reward.value(),
+            uncovering_pen=self.spin_uncovering_penalty.value(),
             intrsc_pen=self.spin_intersection_penalty.value(),
-            esqrs_pen=self.spin_esqrs_pen.value()
+            esqrs_pen=self.spin_esqrs_pen.value(),
+            area_pen=self.spin_area_penalty.value(),
+            far_empty_pen=self.spin_far_empty_penalty.value()
         )
         self.algorithm.initialize()
 
@@ -298,23 +360,49 @@ class MainWindow(qtw.QMainWindow):
 
     def next_step(self):
         if self.algorithm is None:
-            qtw.QMessageBox.critical(self, "Ошибка в работе алгоритма", f"Алгоритм ещё не запущен!")
+            qtw.QMessageBox.critical(
+                self,
+                "Ошибка в работе алгоритма",
+                "Алгоритм ещё не запущен!"
+            )
             return
 
-        # Перерисовывает графики и обновляет таблицу при переходе к невычисленному шагу
         if self.current_step == self.max_computed_step:
+            generation_limit = (
+                self.algorithm.get_generation_count()
+            )
+
+            if self.max_computed_step >= generation_limit:
+                qtw.QMessageBox.information(
+                    self,
+                    "Алгоритм завершён",
+                    (
+                        "Достигнуто заданное число поколений: "
+                        f"{generation_limit}."
+                    )
+                )
+                return
+
             self.algorithm.step()
             self.max_computed_step += 1
+
             self.add_table_row(self.max_computed_step)
             self.draw_fitness_plot()
+
             self.current_step = self.max_computed_step
+
         else:
             self.current_step += 1
 
-        # Обновляем визуализацию для текущего поколения
-        self.current_population = self.algorithm.get_population(self.current_step - 1)
+        self.current_population = self.algorithm.get_population(
+            self.current_step - 1
+        )
+
         self.choose_best_individual()
-        self.label_population_num.setText(f"Рассматриваемая популяция: {self.current_step}")
+
+        self.label_population_num.setText(
+            f"Рассматриваемая популяция: {self.current_step}"
+        )
 
     def go_to_step(self, step):
         if self.algorithm is None:
@@ -322,7 +410,15 @@ class MainWindow(qtw.QMainWindow):
             return
 
         if step < 1 or step > self.max_computed_step:
-            raise Exception(f"Переход может быть только к вычисленному шагу (от 1 до {self.max_computed_step})")
+            qtw.QMessageBox.warning(
+                self,
+                "Некорректное поколение",
+                (
+                    "Переход возможен только к вычисленному "
+                    f"поколению от 1 до {self.max_computed_step}."
+                )
+            )
+            return
 
         self.current_step = step
         self.current_population = self.algorithm.get_population(self.current_step - 1)
@@ -335,39 +431,96 @@ class MainWindow(qtw.QMainWindow):
         self.go_to_step(self.current_step - 1)
 
     def get_result(self):
+        if self.algorithm is None:
+            qtw.QMessageBox.critical(
+                self,
+                "Ошибка в работе алгоритма",
+                "Сначала задайте точки и запустите алгоритм!"
+            )
+            return
+
         self.algorithm.run()
 
-        self.max_computed_step = len(self.algorithm.get_history())
-        for i in range(self.current_step + 1, self.max_computed_step + 1):
-            self.add_table_row(i)
+        self.max_computed_step = len(
+            self.algorithm.get_history()
+        )
+
+        # Перестраиваем таблицу полностью,
+        # чтобы в ней не появлялись повторяющиеся строки.
+        self.table_widget.setRowCount(0)
+
+        for step in range(1, self.max_computed_step + 1):
+            self.add_table_row(step)
 
         self.current_step = self.max_computed_step
-        self.current_population = self.algorithm.get_population(self.current_step - 1)
+
+        self.current_population = self.algorithm.get_population(
+            self.current_step - 1
+        )
+
         self.draw_fitness_plot()
         self.choose_best_individual()
-        self.label_population_num.setText(f"Рассматриваемая популяция: {self.current_step}")
+
+        self.label_population_num.setText(
+            f"Рассматриваемая популяция: {self.current_step}"
+        )
 
     def on_table_cell_clicked(self, row, column):
-        self.go_to_step(row + 1)
+        step = row + 1
+
+        if 1 <= step <= self.max_computed_step:
+            self.go_to_step(step)
 
     def show_chromosome(self):
         if self.current_population is None:
-            qtw.QMessageBox.critical(self, "Ошибка в работе алгоритма", f"Алгоритм ещё не запущен!")
+            qtw.QMessageBox.critical(
+                self,
+                "Ошибка",
+                "Алгоритм ещё не запущен!"
+            )
             return
 
-        text = ""
-        chromosome = self.current_population[self.spin_individuum.value() - 1].get_chromosome()
-        for square in chromosome:
-            text += f"{square[0]:.4f} {square[1]:.4f} {square[2]:.4f}\n"
+        individual_index = self.spin_individuum.value() - 1
 
-        title = f"Хромосомы индивидуума {self.spin_individuum.value()} из популяции {self.current_step}"
+        if not 0 <= individual_index < len(self.current_population):
+            qtw.QMessageBox.critical(
+                self,
+                "Ошибка",
+                "Выбранного индивидуума нет в популяции."
+            )
+            return
 
-        message_box = QMessageBox(self)
-        message_box.setWindowTitle(title)
-        message_box.setText(text)
-        message_box.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        message_box.setStandardButtons(QMessageBox.Ok)
-        message_box.show()
+        chromosome = self.current_population[
+            individual_index
+        ].get_chromosome()
+
+        lines = []
+
+        for number, square in enumerate(chromosome, start=1):
+            # Поддерживает и объекты Square, и кортежи.
+            if hasattr(square, "x"):
+                x, y, width = square.x, square.y, square.w
+            else:
+                x, y, width = square
+
+            lines.append(
+                f"Квадрат {number}: "
+                f"x = {x:.4f}, "
+                f"y = {y:.4f}, "
+                f"сторона = {width:.4f}"
+            )
+
+        text = "\n".join(lines)
+
+        qtw.QMessageBox.information(
+            self,
+            (
+                f"Гены индивидуума "
+                f"{self.spin_individuum.value()}, "
+                f"поколение {self.current_step}"
+            ),
+            text
+        )
 
     def choose_best_individual(self):
         if self.current_population is None:
@@ -394,7 +547,7 @@ class MainWindow(qtw.QMainWindow):
             self,
             "Случайная генерация точек",
             "Введите количество точек:",
-            5,
+            10,
             1,
             10000
         )
@@ -504,16 +657,17 @@ class MainWindow(qtw.QMainWindow):
             self,
             "Загрузить точки",
             "",
-            "Текстовый файл (*.txt);;JSON-файл (*.json)"
+            "Текстовый файл (*.txt);;JSON-файл (*.json)",
+            options=self.file_dialog_options
         )
 
-        if not file_name.strip():
+        if not file_name:
             return
 
         file_name = DataUtils.normalize_file_path(file_name)
 
         try:
-            self.input_points = DataUtils.load_points_from_file(file_name)
+            points = DataUtils.load_points_from_file(file_name)
         except Exception as error:
             qtw.QMessageBox.critical(
                 self,
@@ -522,9 +676,11 @@ class MainWindow(qtw.QMainWindow):
             )
             return
 
+        self.input_points = points
+        self._reset_algorithm_state_after_points_change()
+
         self.points_info.setText(f"Точек: {len(self.input_points)}")
         self.visual_widget.set_data(self.input_points, [])
-        self._reset_algorithm_state_after_points_change()
 
         qtw.QMessageBox.information(
             self,
@@ -541,18 +697,20 @@ class MainWindow(qtw.QMainWindow):
             )
             return
 
-        file_name, _ = qtw.QFileDialog.getSaveFileName(
+        file_name, selected_filter = qtw.QFileDialog.getSaveFileName(
             self,
             "Сохранить точки",
             "",
-            "Текстовый файл (*.txt);;JSON-файл (*.json)"
+            "Текстовый файл (*.txt);;JSON-файл (*.json)",
+            options=self.file_dialog_options
         )
 
         if not file_name.strip():
             return
 
         file_name = DataUtils.normalize_file_path(file_name)
-        file_name = DataUtils.add_selected_extension(file_name, ".json")
+        extension = ".txt" if "*.txt" in selected_filter else ".json"
+        file_name = DataUtils.add_selected_extension(file_name, extension)
 
         try:
             DataUtils.save_points_to_file(file_name, self.input_points)
@@ -589,18 +747,21 @@ class MainWindow(qtw.QMainWindow):
             )
             return
 
-        file_name, _ = qtw.QFileDialog.getSaveFileName(
+        file_name, selected_filter = qtw.QFileDialog.getSaveFileName(
             self,
             "Сохранить популяции",
             "",
-            "Текстовый файл (*.txt);;JSON-файл (*.json)"
+            "Текстовый файл (*.txt);;JSON-файл (*.json)",
+            options=self.file_dialog_options
         )
 
         if not file_name.strip():
             return
 
         file_name = DataUtils.normalize_file_path(file_name)
-        file_name = DataUtils.add_selected_extension(file_name, ".json")
+
+        extension = ".txt" if "*.txt" in selected_filter else ".json"
+        file_name = DataUtils.add_selected_extension(file_name, extension)
 
         try:
             DataUtils.save_populations_to_file(

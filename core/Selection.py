@@ -52,4 +52,29 @@ class Selection:
         return pairs
     
     def roulette_selection(self, population: List[Individual]) -> List[Tuple[Individual, Individual]]:
-        pass
+        """Рулеточный отбор.
+
+        Вероятность выбора особи пропорциональна её fitness.
+        Значения сдвигаются, поскольку fitness может быть отрицательным.
+        """
+        if not population:
+            return []
+
+        fitness_values = [ind.get_fitness() for ind in population]
+        min_fitness = min(fitness_values)
+
+        # После сдвига все веса становятся положительными.
+        weights = [
+            fitness - min_fitness + 1e-9
+            for fitness in fitness_values
+        ]
+
+        pairs = []
+        num_pairs = len(population) // 2
+
+        for _ in range(num_pairs):
+            parent1 = random.choices(population, weights=weights, k=1)[0]
+            parent2 = random.choices(population, weights=weights, k=1)[0]
+            pairs.append((parent1, parent2))
+
+        return pairs
