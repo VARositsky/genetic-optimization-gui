@@ -11,14 +11,16 @@ from .Mutation import Mutation
 class GeneticAlgorithm:
     """Класс генетического алгоритма"""
     def __init__(self, points=None, pop_size=70, square_count=3, gen_count=500, mut_prob=0.25, cross_prob=0.75, k_best_percent=0.25,
-    covering_rew=12, uncovering_pen=37, intrsc_pen=20.0, esqrs_pen=35, area_pen=0.001, far_empty_pen=7, selection_method="tournament",):
+    covering_rew=12, uncovering_pen=37, intrsc_pen=20.0, esqrs_pen=35, area_pen=0.001, far_empty_pen=7, selection_method="tournament"):
         
         self._history = [] # История эволюции
+        self._success_individuals = [] # Успешные особи
         
         self._points = points if points is not None else [] # Точки на плоскости
         self._square_count = square_count # Количество рассматриваемых квадратов
         self._population_size = pop_size # Размер популяции
         self._generation_count = gen_count # Количество поколений
+        self._selection_method = selection_method # Метод отбора
         
         self._mutation_probability = mut_prob # Вероятность мутации гена
         self._crossover_probability = cross_prob # Вероятность скрещивания родителей
@@ -31,7 +33,6 @@ class GeneticAlgorithm:
         self._empty_squares_penalty = esqrs_pen # Штраф за "пустые" квадраты
         self._area_penalty = area_pen # Штраф за общую площадь
         self._far_empty_penalty = far_empty_pen # Штраф за удаленные "пустые" квадраты
-        self._selection_method = selection_method # Метод отбора
         
         if points is not None:
             self._set_fild_params() # Определяет параметры поля
@@ -74,6 +75,12 @@ class GeneticAlgorithm:
             return self._history[generation_number]
         raise IndexError(f"Номер поколения {generation_number} вне диапазона (0..{len(self._history)-1})")
 
+    def get_success_individuals(self) -> List[Tuple[int, int]]:
+        """
+        Возвращает список индексов индивидуумов, которые покрыли все точки без пересечений
+        """
+        return self._success_individuals
+    
     def initialize(self) -> None:
         """
         Инициализирует алгоритм
@@ -113,7 +120,7 @@ class GeneticAlgorithm:
         self._FIELD_CENTER_X = (mx_x + mn_x) / 2
         self._FIELD_CENTER_Y = (mx_y + mn_y) / 2
 
-    def fitness(self, individual: Individual) -> float:
+    def fitness(self, individual: Individual, index: int = None) -> float:
         """
         F = A * covered_points^2
             - B * intersection_area
@@ -129,6 +136,9 @@ class GeneticAlgorithm:
         total_area = self._calculate_total_area(squares)
         sum_relative_distance_emptysqrs = self._calculate_far_empty_squares(squares, covered_set)
         
+        if index != None and len(covered_set) == len(self._points) and intersection_area == 0:
+            self._success_individuals.append((len(self._history), index))
+            
         return (
             self._covering_rew * (covered_points ** 2)
             - self._intersection_penalty * intersection_area
@@ -218,7 +228,7 @@ class GeneticAlgorithm:
         Определеяет для каждого индивидуума значение его фунции приспособленности
         """
         for i in range(self._population_size):
-            population[i].set_fitness(self.fitness(population[i]))
+            population[i].set_fitness(self.fitness(population[i], i))
 
     def run(self):
         """
@@ -226,41 +236,6 @@ class GeneticAlgorithm:
         """
         while len(self._history) < self._generation_count:
             self.step()
-
-    # def step(self):
-    #     """
-    #     Выполняет один шаг алгоритма
-    #     """
-    #     K_BEST_PERCENT = self._k_best_percent
-    #     proportion = ceil(self._population_size * K_BEST_PERCENT)
-    #     if proportion % 2 != 0:
-    #         proportion += 1
-        
-    #     prev_population = sorted(self._history[-1], key=lambda individual: individual.get_fitness(), reverse=True)
-
-    #     new_population_best = [individual.copy() for individual in prev_population[:proportion]]
-        
-    #     selection_population = prev_population[proportion:]
-
-    #     # Выбор родителей
-    #     if self._selection_method == "roulette":
-    #         parents = self._selection.roulette_selection(selection_population)
-
-    #     elif self._selection_method == "rank":
-    #         parents = self._selection.rank_selection(selection_population)
-
-    #     else:
-    #         parents = self._selection.tournament_selection(
-    #             selection_population,
-    #             k=3
-    #         )
-        
-    #     new_population_children = sorted(self._crossover.do(parents), key=lambda ind: -ind.get_fitness())
-        
-    #     new_population = new_population_best + self._mutation.do(new_population_children) # Новая популяция
-        
-    #     self._eval_fitness(new_population)
-    #     self._history.append(new_population)
     
     def step(self):
         """
