@@ -11,7 +11,7 @@ from .Mutation import Mutation
 class GeneticAlgorithm:
     """Класс генетического алгоритма"""
     def __init__(self, points=None, pop_size=70, square_count=3, gen_count=500, mut_prob=0.25, cross_prob=0.75, k_best_percent=0.25,
-                 covering_rew=12, uncovering_pen=37, intrsc_pen=20.0, esqrs_pen=35, area_pen=0.001, far_empty_pen=7):
+    covering_rew=12, uncovering_pen=37, intrsc_pen=20.0, esqrs_pen=35, area_pen=0.001, far_empty_pen=7, selection_method="tournament"):
         
         self._history = [] # История эволюции
         self._success_individuals = [] # Успешные особи
@@ -20,6 +20,7 @@ class GeneticAlgorithm:
         self._square_count = square_count # Количество рассматриваемых квадратов
         self._population_size = pop_size # Размер популяции
         self._generation_count = gen_count # Количество поколений
+        self._selection_method = selection_method # Метод отбора
         
         self._mutation_probability = mut_prob # Вероятность мутации гена
         self._crossover_probability = cross_prob # Вероятность скрещивания родителей
@@ -220,7 +221,7 @@ class GeneticAlgorithm:
             )
             sum_relative_distance_emptysqrs += min_dist
 
-        return sum_relative_distance_emptysqrs    
+        return sum_relative_distance_emptysqrs       
 
     def _eval_fitness(self, population: List[Individual]) -> None:
         """
@@ -235,7 +236,7 @@ class GeneticAlgorithm:
         """
         while len(self._history) < self._generation_count:
             self.step()
-
+    
     def step(self):
         """
         Выполняет один шаг алгоритма
@@ -248,7 +249,19 @@ class GeneticAlgorithm:
         prev_population = self._history[-1]
         new_population_best = prev_population[:proportion] # Сохранение лучших без изменений
         
-        parents = self._selection.tournament_selection(prev_population[proportion:], k=3) # Выбор родителей
+        # Выбор родителей
+        parents = []
+        if self._selection_method == "roulette":
+            parents = self._selection.roulette_selection(prev_population[proportion:])
+
+        elif self._selection_method == "rank":
+            parents = self._selection.rank_selection(prev_population[proportion:])
+
+        else:
+            parents = self._selection.tournament_selection(
+                prev_population[proportion:],
+                k=3
+            )
         
         new_population_children = sorted(self._crossover.do(parents), key=lambda ind: -ind.get_fitness())
         
