@@ -14,6 +14,7 @@ class GeneticAlgorithm:
                  covering_rew=12, uncovering_pen=37, intrsc_pen=20.0, esqrs_pen=35, area_pen=0.001, far_empty_pen=7):
         
         self._history = [] # История эволюции
+        self._success_individuals = [] # Успешные особи
         
         self._points = points if points is not None else [] # Точки на плоскости
         self._square_count = square_count # Количество рассматриваемых квадратов
@@ -73,6 +74,12 @@ class GeneticAlgorithm:
             return self._history[generation_number]
         raise IndexError(f"Номер поколения {generation_number} вне диапазона (0..{len(self._history)-1})")
 
+    def get_success_individuals(self) -> List[Tuple[int, int]]:
+        """
+        Возвращает список индексов индивидуумов, которые покрыли все точки без пересечений
+        """
+        return self._success_individuals
+    
     def initialize(self) -> None:
         """
         Инициализирует алгоритм
@@ -112,7 +119,7 @@ class GeneticAlgorithm:
         self._FIELD_CENTER_X = (mx_x + mn_x) / 2
         self._FIELD_CENTER_Y = (mx_y + mn_y) / 2
 
-    def fitness(self, individual: Individual) -> float:
+    def fitness(self, individual: Individual, index: int = None) -> float:
         """
         F = A * covered_points^2
             - B * intersection_area
@@ -127,6 +134,10 @@ class GeneticAlgorithm:
         intersection_area = self._calculate_intersection_area(squares)
         total_area = self._calculate_total_area(squares)
         sum_relative_distance_emptysqrs = self._calculate_far_empty_squares(squares, covered_set)
+        
+        if index != None and len(covered_set) == len(self._points) and intersection_area == 0:
+            self._success_individuals.append((len(self._history), index))
+            
         return (
             self._covering_rew * (covered_points ** 2)
             - self._intersection_penalty * intersection_area
@@ -216,7 +227,7 @@ class GeneticAlgorithm:
         Определеяет для каждого индивидуума значение его фунции приспособленности
         """
         for i in range(self._population_size):
-            population[i].set_fitness(self.fitness(population[i]))
+            population[i].set_fitness(self.fitness(population[i], i))
 
     def run(self):
         """
@@ -245,6 +256,9 @@ class GeneticAlgorithm:
         
         self._eval_fitness(new_population)
         self._history.append(new_population)
+        
+        if self._generation_count == len(self._history):
+            print(self._success_individuals)
     
 
 if __name__ == '__main__':
