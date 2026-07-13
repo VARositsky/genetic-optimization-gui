@@ -5,6 +5,18 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 
+class Square:
+    def __init__(self, x, y, width, is_empty=True):
+        self.x = x
+        self.y = y
+        self.w = width
+        self.is_empty = is_empty
+    
+    def copy(self):
+        square = Square(self.x, self.y, self.w, self.is_empty)
+        return square
+  
+
 class Individual:
     # MAX_WIDTH = 20
     def __init__(self, M: int, bounds: list, points: list, init=True):
@@ -12,10 +24,11 @@ class Individual:
         self._c_squares = M
         self._bounds = bounds # размер поля
         self._L = max(abs(bounds[2] - bounds[0]), abs(bounds[3] - bounds[1]))
+        self._average_width = self._L / max(1, self._c_squares) 
         self._points = points
         self._noise_percent_width_size = 0.2
         self._noise_percent_point_spawn = 0.05
-        self._chromosomes: list = None
+        self._chromosomes: List[Square] = None
         self._fitness = float('-inf')
         
         if init:
@@ -26,12 +39,11 @@ class Individual:
             self._chromosomes = self.generate_chromosomes()
             self._initialized = True
     
-    def _generate_width(self):
+    def generate_width(self):
         """Возвращает сторону квадрата"""
-        average_size = self._L / max(1, self._c_squares) 
-        return average_size + abs(random.gauss(0, average_size * self._noise_percent_width_size * 3))
+        return self._average_width + abs(random.gauss(0, self._average_width * self._noise_percent_width_size * 3))
     
-    def _generate_coords(self):
+    def generate_coords(self):
         """Возвращает координаты левого нижнего угла квадрата"""
         p = random.choice(self._points)
         
@@ -41,21 +53,12 @@ class Individual:
         return p[0] + dx, p[1] + dy
     
     def generate_chromosomes(self):
-        # if not self._initialized:
-        #     raise RuntimeError('Класс не инициализирован')
-  
         chromosomes = []
         for _ in range(self._c_squares):
-            w = self._generate_width()
-            x, y = self._generate_coords()
-            chromosomes.append((x, y, w))
+            w = self.generate_width()
+            x, y = self.generate_coords()
+            chromosomes.append(Square(x, y, w))
         return chromosomes
-
-    def _validate_gen(self, gen):
-        pass
-    
-    # def get_coeff(self) -> float:
-    #     return self._coeff
     
     def get_points(self):
         return self._points
@@ -70,6 +73,9 @@ class Individual:
     
     def get_bounds(self) -> list:
         return self._bounds
+    
+    def get_average_width(self):
+        return self._average_width
     
     def set_chromosomes(self, chromosomes: List[Tuple[float, float, float]]) -> None:
         self._chromosomes = list(chromosomes)
@@ -86,43 +92,33 @@ class Individual:
             points=self._points,
             init=False
         )
-        # Явно копируем список хромосом (глубокое копирование каждого кортежа)
-        new_ind._chromosomes = [tuple(ch) for ch in self._chromosomes]
+
+        new_ind._chromosomes = [square.copy() for square in self._chromosomes]
         new_ind._fitness = self._fitness
         new_ind._initialized = True
-        # Остальные атрибуты (константы) уже установлены в __init__
+        
         return new_ind
     
-# Считать макс расстоние между точками. Взять сторону случайно от 1 до (макс. расст.) / M
     def draw_squares(self, points=None):
-        """
-        Рисует квадраты на графике.
-
-        Параметры:
-        squares : list of tuples (x, y, a)
-            Список квадратов, где x, y – координаты левого нижнего угла,
-            a – длина стороны.
-        """
+        """Рисует квадраты на графике."""
         fig, ax = plt.subplots()
         ax.set_xlim(self._bounds[0] - self._L, self._bounds[2] + self._L)
         ax.set_ylim(self._bounds[1] - self._L, self._bounds[2] + self._L)
-        # Добавляем каждый квадрат как прямоугольник
-        for (x, y, a) in self._chromosomes:
+
+        for square in self._chromosomes:
+            x, y, w = square.x, square.y, square.w
             rect = patches.Rectangle(
-                (x, y), a, a,
+                (x, y), w, w,
                 linewidth=1, edgecolor='black', facecolor='none'
             )
             ax.add_patch(rect)
         
         if points is not None:
-            # Если переданы точки – рисуем их
-            # Предполагаем, что points – список кортежей (x, y)
             xs = [p[0] for p in points]
             ys = [p[1] for p in points]
             ax.scatter(xs, ys, color='red', s=30, zorder=5, label='Точки')
-            ax.legend()  # опционально
+            ax.legend()
 
-        # Равный масштаб по осям
         ax.set_aspect('equal', adjustable='box')
         plt.show()
         

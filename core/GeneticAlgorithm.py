@@ -1,15 +1,17 @@
 from typing import List
 import random
+from math import ceil, sqrt
 
 from .Individual import Individual
 from .Selection import Selection
 from .Crossover import Crossover
 from .Mutation import Mutation
 
+random.seed(42)
 
 class GeneticAlgorithm:
-    def __init__(self, points=None, pop_size=20, square_count=1, gen_count=200, 
-                 mut_prob=0.25, cross_prob=0.7, covering_rew=50, intrsc_pen=3, esqrs_pen=20):
+    def __init__(self, points=None, pop_size=70, square_count=6, gen_count=500, mut_prob=0.25, cross_prob=0.75, 
+                 covering_rew=15.0, uncovering_pen=30, intrsc_pen=5.0, esqrs_pen=23.0, area_pen=0.00001):
         self._history = [] # История эволюции
         
         self._points = points if points is not None else [] # Точки на плоскости
@@ -21,12 +23,13 @@ class GeneticAlgorithm:
         self._crossover_probability = cross_prob # Вероятность скрещивания родителей
 
         self._covering_rew = covering_rew # Награда за покрытие точки
+        self._uncovering_pen = uncovering_pen # Штраф за непокрытые точки
         self._intersection_penalty = intrsc_pen # Штраф за пересечение квадратов
         self._empty_squares_penalty = esqrs_pen # Штраф за "пустые" квадраты
+        self._area_penalty = area_pen # Штраф за общую площадь
 
-        # self._FILD_MAX_SIDE_SIZE = 0 # max(width, height), width := max(X_max - X_min), height := max(Y_max, Y_min)
         if points is not None:
-            self._set_fild_params()
+            self._set_fild_params() # Определяет параметры поля
         
         self._selection: Selection = Selection(Selection.RANK) # Определяет процесс селекции
         self._crossover: Crossover = Crossover() # Определяет процесс скрещивания
@@ -71,7 +74,6 @@ class GeneticAlgorithm:
         
     def _create_population(self):
         """Создает случайную популяцию"""
-        # print('_create_population: ', self._points)
         population = [Individual(self._square_count,
                                  (self._FILD_X_MIN, self._FILD_Y_MIN, 
                                   self._FILD_X_MAX, self._FILD_Y_MAX),
@@ -96,46 +98,74 @@ class GeneticAlgorithm:
         print(self._FILD_MAX_SIDE_SIZE, self._FILD_X_MAX, self._FILD_X_MIN, self._FILD_Y_MAX, self._FILD_Y_MIN)
 
     def fitness(self, individual: Individual) -> float:
+        """
+        F = A * covered_points
+            - B * intersection_area
+            - C * empty_squares
+            - sqrt(D * total_area)
+            - E * uncovered_points
+        """
+
         squares = individual.get_chromosomes()
 
-        intersections = 0
+        covered_points, empty_squares = self._calculate_covering(squares)
+        intersection_area = self._calculate_intersection_area(squares)
+        total_area = self._calculate_total_area(squares)
+
+        return (
+            self._covering_rew * covered_points
+            - self._intersection_penalty * intersection_area
+            - self._empty_squares_penalty * empty_squares
+            - sqrt(self._area_penalty * total_area)
+            - self._uncovering_pen * (len(self._points) - covered_points)
+        )
+    
+    def _calculate_covering(self, squares):
+        """Возвращает кортеж из кол. покрытых и непокрытых точек"""
+        covered_points = set()
+        empty_squares = 0
+
+        for square in squares:
+            contains_points = False
+
+            for point_id, (px, py) in enumerate(self._points):
+                x, y, w = square.x, square.y, square.w
+                if x <= px <= x + w and y <= py <= y + w:
+                    covered_points.add(point_id)
+                    contains_points = True
+
+            if not contains_points:
+                empty_squares += 1
+                continue
+            
+            square.is_empty = False
+
+        return len(covered_points), empty_squares
+    
+    def _calculate_intersection_area(self, squares):
+        """Возвращает суммарную площадь пересечений"""
+        intersection_area = 0.0
 
         for i in range(len(squares)):
-            x1, y1, w1 = squares[i]
+            square1 = squares[i]
+            x1, y1, w1 = square1.x, square1.y, square1.w
 
             for j in range(i + 1, len(squares)):
-                x2, y2, w2 = squares[j]
+                square2 = squares[j]
+                x2, y2, w2 = square2.x, square2.y, square2.w
 
-                not_intersect_x = (x1 + w1 < x2) or (x2 + w2 < x1)
-                not_intersect_y = (y1 + w1 < y2) or (y2 + w2 < y1)
+                overlap_width = min(x1 + w1, x2 + w2) - max(x1, x2)
+                overlap_height = min(y1 + w1, y2 + w2) - max(y1, y2)
 
-                if not (not_intersect_x or not_intersect_y):
-                    intersections += 1
+                if overlap_width > 0 and overlap_height > 0:
+                    intersection_area += overlap_width * overlap_height
 
-        covered_points = set()
-        empty_squares_count = 0
-        area_penalty = 0.0
+        return intersection_area
 
-        for square_index, (x, y, w) in enumerate(squares):
-            points_in_square = 0
-
-            for point_index, (px, py) in enumerate(self._points):
-                if x <= px <= x + w and y <= py <= y + w:
-                    covered_points.add(point_index)
-                    points_in_square += 1
-
-            if points_in_square == 0:
-                empty_squares_count += 1
-
-            area_penalty += w * w
-
-        covered_reward = self._covering_rew * len(covered_points)
-        intersection_penalty = max(1.0, self._intersection_penalty * 50.0) * (intersections ** 2)
-        empty_penalty = self._empty_squares_penalty * empty_squares_count
-        size_penalty = 0.001 * area_penalty
-
-        return covered_reward - intersection_penalty - empty_penalty - size_penalty
-    
+    def _calculate_total_area(self, squares):
+        """Возвращает суммарную площадь квадратов"""
+        return sum(square.w ** 2 for square in squares)
+        
     def _eval_fitness(self, population: List[Individual]) -> None:
         """И значение целевой функции"""
         for i in range(self._population_size):
@@ -148,22 +178,28 @@ class GeneticAlgorithm:
             self.step()
 
     def step(self):
-        parents = self._selection.tournament_selection(self._history[-1], k=3)
+        K_BEST_PERCENT = 0.25
+        proportion = ceil(self._square_count * K_BEST_PERCENT)
+        if proportion % 2 != 0:
+            proportion += 1
         
-        new_population = self._mutation.do(
-            self._crossover.do(
-                parents, 
-                self._crossover_probability), 
-            self._mutation_probability)
-
+        prev_population = self._history[-1]
+        new_population_best = prev_population[:proportion]
+        
+        parents = self._selection.tournament_selection(prev_population[proportion:], k=3)
+        
+        new_population_children = sorted(self._crossover.do(parents, self._crossover_probability), key=lambda ind: -ind.get_fitness())
+        
+        new_population = new_population_best + self._mutation.do(new_population_children, mutation_prob=self._mutation_probability)
+        
         self._eval_fitness(new_population)
         self._history.append(new_population)
     
 
 if __name__ == '__main__':
     '''EXAMPLE'''
-    N = 20
-    ga = GeneticAlgorithm(points=[(random.randint(-20, 20), random.randint(-20, 20)) for _ in range(N)])
+    N = 40
+    ga = GeneticAlgorithm(points=[(random.randint(-100, 100), random.randint(-100, 100)) for _ in range(N)])
     ga.initialize()
     pop = ga.get_population(0)
     gen = pop[0]
