@@ -7,7 +7,6 @@ from .Selection import Selection
 from .Crossover import Crossover
 from .Mutation import Mutation
 
-random.seed(42)
 
 class GeneticAlgorithm:
     def __init__(self, points=None, pop_size=70, square_count=6, gen_count=500, mut_prob=0.25, cross_prob=0.75, 
