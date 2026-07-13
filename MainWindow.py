@@ -23,8 +23,6 @@ class MainWindow(qtw.QMainWindow):
         self.graph_colors = GRAPH_THEMES["white"]
         self.current_step = 0
         self.max_computed_step = 0
-        self.file_dialog_options = qtw.QFileDialog.Options()
-        self.file_dialog_options |= qtw.QFileDialog.DontUseNativeDialog
         self.setup_ui()
         self.show()
 
@@ -653,15 +651,13 @@ class MainWindow(qtw.QMainWindow):
         self.canvas_quality.draw()
 
     def load_points_from_file(self):
-        file_name, _ = qtw.QFileDialog.getOpenFileName(
+        file_name, ok = qtw.QInputDialog.getText(
             self,
             "Загрузить точки",
-            "",
-            "Текстовый файл (*.txt);;JSON-файл (*.json)",
-            options=self.file_dialog_options
+            "Введите путь к файлу .json или .txt:"
         )
 
-        if not file_name:
+        if not ok or not file_name.strip():
             return
 
         file_name = DataUtils.normalize_file_path(file_name)
@@ -697,23 +693,23 @@ class MainWindow(qtw.QMainWindow):
             )
             return
 
-        file_name, selected_filter = qtw.QFileDialog.getSaveFileName(
+        file_name, ok = qtw.QInputDialog.getText(
             self,
             "Сохранить точки",
-            "",
-            "Текстовый файл (*.txt);;JSON-файл (*.json)",
-            options=self.file_dialog_options
+            "Введите путь для сохранения .json или .txt:"
         )
 
-        if not file_name.strip():
+        if not ok or not file_name.strip():
             return
 
         file_name = DataUtils.normalize_file_path(file_name)
-        extension = ".txt" if "*.txt" in selected_filter else ".json"
-        file_name = DataUtils.add_selected_extension(file_name, extension)
+        file_name = DataUtils.add_selected_extension(file_name, ".json")
 
         try:
-            DataUtils.save_points_to_file(file_name, self.input_points)
+            DataUtils.save_points_to_file(
+                file_name,
+                self.input_points
+            )
         except Exception as error:
             qtw.QMessageBox.critical(
                 self,
@@ -747,21 +743,17 @@ class MainWindow(qtw.QMainWindow):
             )
             return
 
-        file_name, selected_filter = qtw.QFileDialog.getSaveFileName(
+        file_name, ok = qtw.QInputDialog.getText(
             self,
             "Сохранить популяции",
-            "",
-            "Текстовый файл (*.txt);;JSON-файл (*.json)",
-            options=self.file_dialog_options
+            "Введите путь для сохранения .json или .txt:"
         )
 
-        if not file_name.strip():
+        if not ok or not file_name.strip():
             return
 
         file_name = DataUtils.normalize_file_path(file_name)
-
-        extension = ".txt" if "*.txt" in selected_filter else ".json"
-        file_name = DataUtils.add_selected_extension(file_name, extension)
+        file_name = DataUtils.add_selected_extension(file_name, ".json")
 
         try:
             DataUtils.save_populations_to_file(
