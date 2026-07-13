@@ -14,8 +14,8 @@ MIN_PROB = 0
 MAX_PROB = 1
 START_PROB = 0.01
 
-START_MUT_PROB = 0.15
-START_CROSS_PROB = 0.8
+START_MUT_PROB = 0.25
+START_CROSS_PROB = 0.75
 
 # Отдельные константы для задания штрафов
 MIN_PENALTY = 0

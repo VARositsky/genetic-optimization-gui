@@ -130,11 +130,11 @@ class DataUtils:
     def _individual_to_dict(individual):
         squares = []
 
-        for x, y, side in individual.get_chromosomes():
+        for square in individual.get_chromosome():
             squares.append({
-                "x": float(x),
-                "y": float(y),
-                "side": float(side),
+                "x": float(square.x),
+                "y": float(square.y),
+                "side": float(square.w),
             })
 
         return {
@@ -211,14 +211,14 @@ class DataUtils:
                         f"fitness = {individual.get_fitness():.6f}\n"
                     )
 
-                    for square_index, (x, y, side) in enumerate(
-                        individual.get_chromosomes()
+                    for square_index, square in enumerate(
+                        individual.get_chromosome()
                     ):
                         file.write(
                             f"    Квадрат {square_index}: "
-                            f"x={DataUtils._format_number(x)}, "
-                            f"y={DataUtils._format_number(y)}, "
-                            f"side={DataUtils._format_number(side)}\n"
+                            f"x={DataUtils._format_number(square.x)}, "
+                            f"y={DataUtils._format_number(square.y)}, "
+                            f"side={DataUtils._format_number(square.w)}\n"
                         )
 
     @staticmethod

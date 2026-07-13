@@ -57,7 +57,8 @@ class VisualWidget(qtw.QGraphicsView):
         self.cursor_cords.setDefaultTextColor(self.colors["text_color"])
         self.cursor_cords.setVisible(False)
 
-        for x, y, w in self.squares:
+        for square in self.squares:
+            x, y, w = square.x, square.y, square.w
             rect_item = qtw.QGraphicsRectItem(x, y, w, w)
             color = self.colors["sqr_color"]
             rect_item.setBrush(QBrush(color))

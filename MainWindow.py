@@ -201,7 +201,7 @@ class MainWindow(qtw.QMainWindow):
 
         # Кнопка просмотра генов выбранного индивидуума
         self.view_sol_button = qtw.QPushButton("Посмотреть гены")
-        self.view_sol_button.clicked.connect(self.show_chromosomes)
+        self.view_sol_button.clicked.connect(self.show_chromosome)
         buttons_individuum.addWidget(self.view_sol_button)
         buttons_individuum.addSpacing(20)
 
@@ -350,14 +350,14 @@ class MainWindow(qtw.QMainWindow):
     def on_table_cell_clicked(self, row, column):
         self.go_to_step(row + 1)
 
-    def show_chromosomes(self):
+    def show_chromosome(self):
         if self.current_population is None:
             qtw.QMessageBox.critical(self, "Ошибка в работе алгоритма", f"Алгоритм ещё не запущен!")
             return
 
         text = ""
-        chromosomes = self.current_population[self.spin_individuum.value() - 1].get_chromosomes()
-        for square in chromosomes:
+        chromosome = self.current_population[self.spin_individuum.value() - 1].get_chromosome()
+        for square in chromosome:
             text += f"{square[0]:.4f} {square[1]:.4f} {square[2]:.4f}\n"
 
         title = f"Хромосомы индивидуума {self.spin_individuum.value()} из популяции {self.current_step}"
@@ -376,7 +376,7 @@ class MainWindow(qtw.QMainWindow):
 
         idx, best_individual = max(enumerate(self.current_population), key=lambda x: x[1].get_fitness())
         self.spin_individuum.setValue(idx + 1)
-        self.visual_widget.set_data(self.input_points, best_individual.get_chromosomes())
+        self.visual_widget.set_data(self.input_points, best_individual.get_chromosome())
         self.label_individuum_fitness.setText(f"Fitness индивидуума: {best_individual.get_fitness()}")
 
     def individuum_value_changed(self):
@@ -386,7 +386,7 @@ class MainWindow(qtw.QMainWindow):
 
         new_individuum = self.spin_individuum.value()
         cur_individuum = self.current_population[new_individuum - 1]
-        self.visual_widget.set_data(self.input_points, cur_individuum.get_chromosomes())
+        self.visual_widget.set_data(self.input_points, cur_individuum.get_chromosome())
         self.label_individuum_fitness.setText(f"Fitness индивидуума: {cur_individuum.get_fitness()}")
 
     def generate_random_points_clicked(self):

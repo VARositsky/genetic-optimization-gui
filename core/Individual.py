@@ -5,94 +5,120 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 
+class Square:
+    """Описывает квадрат (один ген индивидуума)"""
+    def __init__(self, x, y, width, is_empty=True):
+        self.x = x # Координата по x
+        self.y = y # Координата по у
+        self.w = width # Размер стороны w
+        self.is_empty = is_empty # Является ли пустым. Пустой, если не покрывает ни одной точки.
+    
+    def copy(self):
+        square = Square(self.x, self.y, self.w, self.is_empty)
+        return square
+  
+
 class Individual:
-    MAX_WIDTH = 20
-    def __init__(self, M: int, bounds: Tuple[int, int, int, int], coeff: float, init=True):
-        self._c_squares = M
-        self._bounds = bounds
-        self._coeff = coeff
-        self._chromosomes: List[Tuple[float, float, float]] = self._generate_chromosomes() if init else []
-        self._fitness = 0
+    """
+    Описывает одного индивидуума
+    """
+    def __init__(self, M: int, bounds: list, points: list, init=True):
+        self._c_squares = M # Количество квадратов
+        self._bounds = bounds # Границы поля: x_min, y_min, x_max, y_max
+        self._L = max(abs(bounds[2] - bounds[0]), abs(bounds[3] - bounds[1])) # Наибольшая стороны поля
+        self._average_width = self._L / max(1, self._c_squares) # Средний размер квадрата
+        self._points = points # Рассматриваемые точки
+        self._noise_percent_width_size = 0.2 # Процент шума для размера
+        self._noise_percent_point_spawn = 0.05 # Процент шума для размещения
+        self._chromosome: List[Square] = self._generate_chromosome() if init else [] # Список генов
+        self._fitness = float('-inf') # Значение функции приспособленности
+
+    def generate_width(self) -> float:
+        """
+        Генерирует и возвращает сторону случайного квадрата
+        """
+        return self._average_width + abs(random.gauss(0, self._average_width * self._noise_percent_width_size * 3))
     
-    def _generate_chromosomes(self):
-        chromosomes = []
-
-        x_min, y_min, x_max, y_max = self._bounds
-        field_size = max(x_max - x_min, y_max - y_min)
-
-        max_w = max(1.0, field_size / max(1, self._c_squares) * 1.5)
-
+    def generate_coords(self) -> Tuple[float, float]:
+        """
+        Генерирует и возвращает координаты левого нижнего угла случайного квадрата
+        """
+        p = random.choice(self._points)
+        
+        dx = random.gauss(0, self._noise_percent_point_spawn * abs(p[0]))
+        dy = random.gauss(0, self._noise_percent_point_spawn * abs(p[1]))
+        
+        return p[0] + dx, p[1] + dy
+    
+    def _generate_chromosome(self) -> List[Square]:
+        """
+        Генерирует и возвращает гены индивидуума
+        """
+        chromosome = []
         for _ in range(self._c_squares):
-            w = random.uniform(1.0, max_w)
-
-            max_x_for_left_corner = max(x_min, x_max - w)
-            max_y_for_left_corner = max(y_min, y_max - w)
-
-            x = random.uniform(x_min, max_x_for_left_corner)
-            y = random.uniform(y_min, max_y_for_left_corner)
-
-            chromosomes.append((x, y, w))
-
-        return chromosomes
-
-    def _validate_gen(self, gen):
-        pass
+            w = self.generate_width()
+            x, y = self.generate_coords()
+            chromosome.append(Square(x, y, w))
+        return chromosome
     
-    def get_coeff(self) -> float:
-        return self._coeff
+    def get_points(self) -> list:
+        return self._points
     
     def get_fitness(self) -> float:
         return self._fitness
     
-    def get_chromosomes(self) ->  List[Tuple[float, float, float]]:
-        return self._chromosomes
+    def get_chromosome(self) ->  List[Tuple[float, float, float]]:
+        return self._chromosome
     
-    def get_bounds(self) -> Tuple[int, int, int, int]:
+    def get_bounds(self) -> list:
         return self._bounds
     
-    def set_chromosomes(self, chromosomes: List[Tuple[float, float, float]]) -> None:
-        self._chromosomes = list(chromosomes)
+    def get_average_width(self) -> float:
+        return self._average_width
+    
+    def set_chromosome(self, chromosome: List[Tuple[float, float, float]]) -> None:
+        self._chromosome = list(chromosome)
 
-    def set_fitness(self, value: float):
+    def set_fitness(self, value: float) -> None:
         self._fitness = value
 
-# Считать макс расстоние между точками. Взять сторону случайно от 1 до (макс. расст.) / M
+    def copy(self):
+        """
+        Создаёт и возвращает полную копию текущего индивида.
+        """
+        new_ind = Individual(
+            M=self._c_squares,
+            bounds=self._bounds,
+            points=self._points,
+            init=False
+        )
+
+        new_ind._chromosome = [square.copy() for square in self._chromosome]
+        new_ind._fitness = self._fitness
+        
+        return new_ind
+    
     def draw_squares(self, points=None):
         """
-        Рисует квадраты на графике.
-
-        Параметры:
-        squares : list of tuples (x, y, a)
-            Список квадратов, где x, y – координаты левого нижнего угла,
-            a – длина стороны.
+        Отображает решение на графике.
         """
         fig, ax = plt.subplots()
-        ax.set_xlim(self._bounds[0] - self.MAX_WIDTH, self._bounds[2] + self.MAX_WIDTH)
-        ax.set_ylim(self._bounds[1] - self.MAX_WIDTH, self._bounds[2] + self.MAX_WIDTH)
-        # Добавляем каждый квадрат как прямоугольник
-        for (x, y, a) in self._chromosomes:
+        ax.set_xlim(self._bounds[0] - self._L, self._bounds[2] + self._L)
+        ax.set_ylim(self._bounds[1] - self._L, self._bounds[2] + self._L)
+
+        for square in self._chromosome:
+            x, y, w = square.x, square.y, square.w
             rect = patches.Rectangle(
-                (x, y), a, a,
+                (x, y), w, w,
                 linewidth=1, edgecolor='black', facecolor='none'
             )
             ax.add_patch(rect)
         
         if points is not None:
-            # Если переданы точки – рисуем их
-            # Предполагаем, что points – список кортежей (x, y)
             xs = [p[0] for p in points]
             ys = [p[1] for p in points]
             ax.scatter(xs, ys, color='red', s=30, zorder=5, label='Точки')
-            ax.legend()  # опционально
+            ax.legend()
 
-        # Равный масштаб по осям
         ax.set_aspect('equal', adjustable='box')
         plt.show()
-        
-
-if __name__ == '__main__':
-    xy = (-10, -10)
-    xy2 = (10, 10)
-        
-    individ = Individual(8, (xy[0], xy[1], xy2[0], xy2[1]), 1/(20/8))
-    individ.draw_squares(points=None)
