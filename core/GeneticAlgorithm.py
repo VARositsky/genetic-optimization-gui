@@ -11,7 +11,7 @@ from .Mutation import Mutation
 class GeneticAlgorithm:
     """Класс генетического алгоритма"""
     def __init__(self, points=None, pop_size=70, square_count=3, gen_count=500, mut_prob=0.25, cross_prob=0.75, k_best_percent=0.25,
-                 covering_rew=12, uncovering_pen=37, intrsc_pen=20.0, esqrs_pen=35, area_pen=0.001, far_empty_pen=10):
+                 covering_rew=12, uncovering_pen=37, intrsc_pen=20.0, esqrs_pen=35, area_pen=0.001, far_empty_pen=7):
         
         self._history = [] # История эволюции
         
