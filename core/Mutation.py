@@ -29,8 +29,8 @@ class Mutation:
                         if square.is_empty:
                             new_x, new_y = ind.generate_coords()
                         else:
-                            dx = random.gauss(0, 0.2 * 3 * abs(x))
-                            dy = random.gauss(0, 0.2 * 3 * abs(y))
+                            dx = random.gauss(0, 0.2 * abs(x))
+                            dy = random.gauss(0, 0.2 * abs(y))
                             new_x = x + dx
                             new_y = y + dy
                             

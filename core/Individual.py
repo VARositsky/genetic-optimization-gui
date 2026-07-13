@@ -45,8 +45,8 @@ class Individual:
         """
         p = random.choice(self._points)
         
-        dx = random.gauss(0, self._noise_percent_point_spawn * 3 * abs(p[0]))
-        dy = random.gauss(0, self._noise_percent_point_spawn * 3 * abs(p[1]))
+        dx = random.gauss(0, self._noise_percent_point_spawn * abs(p[0]))
+        dy = random.gauss(0, self._noise_percent_point_spawn * abs(p[1]))
         
         return p[0] + dx, p[1] + dy
     

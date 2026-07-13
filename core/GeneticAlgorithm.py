@@ -10,8 +10,8 @@ from .Mutation import Mutation
 
 class GeneticAlgorithm:
     """Класс генетического алгоритма"""
-    def __init__(self, points=None, pop_size=70, square_count=3, gen_count=500, mut_prob=0.25, cross_prob=0.75, 
-                 k_best_percent=0.25, covering_rew=12, uncovering_pen=37, intrsc_pen=20.0, esqrs_pen=35, area_pen=0.001):
+    def __init__(self, points=None, pop_size=70, square_count=3, gen_count=500, mut_prob=0.25, cross_prob=0.75, k_best_percent=0.25,
+                 covering_rew=12, uncovering_pen=37, intrsc_pen=20.0, esqrs_pen=35, area_pen=0.001, far_empty_pen=10):
         
         self._history = [] # История эволюции
         
@@ -30,7 +30,8 @@ class GeneticAlgorithm:
         self._intersection_penalty = intrsc_pen # Штраф за пересечение квадратов
         self._empty_squares_penalty = esqrs_pen # Штраф за "пустые" квадраты
         self._area_penalty = area_pen # Штраф за общую площадь
-
+        self._far_empty_penalty = far_empty_pen # Штраф за удаленные "пустые" квадраты
+        
         if points is not None:
             self._set_fild_params() # Определяет параметры поля
         
@@ -107,6 +108,9 @@ class GeneticAlgorithm:
         
         self._FILD_Y_MAX = mx_y
         self._FILD_Y_MIN = mn_y
+        
+        self._FIELD_CENTER_X = (mx_x + mn_x) / 2
+        self._FIELD_CENTER_Y = (mx_y + mn_y) / 2
 
     def fitness(self, individual: Individual) -> float:
         """
@@ -115,24 +119,26 @@ class GeneticAlgorithm:
             - C * empty_squares
             - sqrt(D * total_area)
             - E * uncovered_points
+            - F * sum_relative_distance_empty_squares
         """
         squares = individual.get_chromosome()
 
-        covered_points, empty_squares = self._calculate_covering(squares)
+        covered_points, empty_squares, covered_set = self._calculate_covering(squares)
         intersection_area = self._calculate_intersection_area(squares)
         total_area = self._calculate_total_area(squares)
-
+        sum_relative_distance_emptysqrs = self._calculate_far_empty_squares(squares, covered_set)
         return (
             self._covering_rew * (covered_points ** 2)
             - self._intersection_penalty * intersection_area
             - self._empty_squares_penalty * empty_squares
             - sqrt(self._area_penalty * total_area)
             - self._uncovering_pen * (len(self._points) - covered_points)
+            - self._far_empty_penalty * sum_relative_distance_emptysqrs 
         )
     
-    def _calculate_covering(self, squares) -> Tuple[int, int]:
+    def _calculate_covering(self, squares) -> Tuple[int, int, set]:
         """
-        Возвращает словарь из количества покрытых и непокрытых точек
+        Возвращает словарь из количества покрытых, непокрытых и множества покрытых точек
         """
         covered_points = set()
         empty_squares = 0
@@ -152,7 +158,7 @@ class GeneticAlgorithm:
             
             square.is_empty = False
 
-        return len(covered_points), empty_squares
+        return len(covered_points), empty_squares, covered_points
     
     def _calculate_intersection_area(self, squares):
         """
@@ -181,7 +187,30 @@ class GeneticAlgorithm:
         Возвращает суммарную площадь квадратов
         """
         return sum(square.w ** 2 for square in squares)
-        
+    
+    def _calculate_far_empty_squares(self, squares, covered_set) -> float:
+        """
+        Возвращает суммарное удаление пустых квадратов от ближайших непокрытых вершин
+        """
+        sum_relative_distance_emptysqrs = 0.0
+
+        for square in squares:
+            if not square.is_empty:
+                continue
+            
+            x, y, w = square.x, square.y, square.w
+
+            cx = x + w / 2
+            cy = y + w / 2
+
+            min_dist = min(
+                sqrt((cx - px) ** 2 + (cy - py) ** 2)
+                for px, py in self._points if (px, py) not in covered_set
+            )
+            sum_relative_distance_emptysqrs += min_dist
+
+        return sum_relative_distance_emptysqrs    
+
     def _eval_fitness(self, population: List[Individual]) -> None:
         """
         Определеяет для каждого индивидуума значение его фунции приспособленности
