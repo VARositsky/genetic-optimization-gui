@@ -10,8 +10,8 @@ from .Mutation import Mutation
 
 class GeneticAlgorithm:
     """Класс генетического алгоритма"""
-    def __init__(self, points=None, pop_size=80, square_count=6, gen_count=500, mut_prob=0.29, cross_prob=0.76, 
-                 k_best_percent=0.25, covering_rew=12, uncovering_pen=27, intrsc_pen=12.0, esqrs_pen=23, area_pen=0.0008):
+    def __init__(self, points=None, pop_size=70, square_count=3, gen_count=500, mut_prob=0.25, cross_prob=0.75, 
+                 k_best_percent=0.25, covering_rew=12, uncovering_pen=37, intrsc_pen=20.0, esqrs_pen=35, area_pen=0.001):
         
         self._history = [] # История эволюции
         
@@ -110,7 +110,7 @@ class GeneticAlgorithm:
 
     def fitness(self, individual: Individual) -> float:
         """
-        F = A * covered_points
+        F = A * covered_points^2
             - B * intersection_area
             - C * empty_squares
             - sqrt(D * total_area)
@@ -123,9 +123,9 @@ class GeneticAlgorithm:
         total_area = self._calculate_total_area(squares)
 
         return (
-            self._covering_rew * covered_points
+            self._covering_rew * (covered_points ** 2)
             - self._intersection_penalty * intersection_area
-            - (self._empty_squares_penalty * empty_squares) ** 2
+            - self._empty_squares_penalty * empty_squares
             - sqrt(self._area_penalty * total_area)
             - self._uncovering_pen * (len(self._points) - covered_points)
         )
@@ -220,8 +220,8 @@ class GeneticAlgorithm:
 
 if __name__ == '__main__':
     '''EXAMPLE'''
-    N = 100
-    ga = GeneticAlgorithm(points=[(random.randint(-100, 100), random.randint(-100, 100)) for _ in range(N)])
+    N = 40
+    ga = GeneticAlgorithm(points=[(random.randint(-500, 500), random.randint(-500, 500)) for _ in range(N)])
     ga.initialize()
     pop = ga.get_population(0)
     gen = pop[0]
