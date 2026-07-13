@@ -128,6 +128,7 @@ class GeneticAlgorithm:
         intersection_area = self._calculate_intersection_area(squares)
         total_area = self._calculate_total_area(squares)
         sum_relative_distance_emptysqrs = self._calculate_far_empty_squares(squares, covered_set)
+        
         return (
             self._covering_rew * (covered_points ** 2)
             - self._intersection_penalty * intersection_area
@@ -138,27 +139,26 @@ class GeneticAlgorithm:
         )
     
     def _calculate_covering(self, squares) -> Tuple[int, int, set]:
+        """
+        Возвращает словарь из количества покрытых, непокрытых и множества покрытых точек
+        """
         covered_points = set()
         empty_squares = 0
 
         for square in squares:
-            square.is_empty = True
             contains_points = False
 
-            for point_id, (point_x, point_y) in enumerate(self._points):
-                x, y, width = square.x, square.y, square.w
-
-                if (
-                    x <= point_x <= x + width
-                    and y <= point_y <= y + width
-                ):
+            for point_id, (px, py) in enumerate(self._points):
+                x, y, w = square.x, square.y, square.w
+                if x <= px <= x + w and y <= py <= y + w:
                     covered_points.add(point_id)
                     contains_points = True
 
-            if contains_points:
-                square.is_empty = False
-            else:
+            if not contains_points:
                 empty_squares += 1
+                continue
+            
+            square.is_empty = False
 
         return len(covered_points), empty_squares, covered_points
     
@@ -191,41 +191,27 @@ class GeneticAlgorithm:
         return sum(square.w ** 2 for square in squares)
     
     def _calculate_far_empty_squares(self, squares, covered_set) -> float:
-        """Считает удалённость пустых квадратов
-        от ближайших непокрытых точек.
         """
-        uncovered_points = [
-            point
-            for point_id, point in enumerate(self._points)
-            if point_id not in covered_set
-        ]
-
-        if not uncovered_points:
-            return 0.0
-
-        total_distance = 0.0
+        Возвращает суммарное удаление пустых квадратов от ближайших непокрытых вершин
+        """
+        sum_relative_distance_emptysqrs = 0.0
 
         for square in squares:
             if not square.is_empty:
                 continue
+            
+            x, y, w = square.x, square.y, square.w
 
-            center_x = square.x + square.w / 2
-            center_y = square.y + square.w / 2
+            cx = x + w / 2
+            cy = y + w / 2
 
-            min_distance = min(
-                sqrt(
-                    (center_x - point_x) ** 2
-                    + (center_y - point_y) ** 2
-                )
-                for point_x, point_y in uncovered_points
+            min_dist = min(
+                sqrt((cx - px) ** 2 + (cy - py) ** 2)
+                for px, py in self._points if (px, py) not in covered_set
             )
+            sum_relative_distance_emptysqrs += min_dist
 
-            # Нормализация, чтобы расстояние меньше зависело
-            # от масштаба координат.
-            field_size = max(self._FILD_MAX_SIDE_SIZE, 1e-9)
-            total_distance += min_distance / field_size
-
-        return total_distance    
+        return sum_relative_distance_emptysqrs       
 
     def _eval_fitness(self, population: List[Individual]) -> None:
         """
@@ -241,31 +227,64 @@ class GeneticAlgorithm:
         while len(self._history) < self._generation_count:
             self.step()
 
+    # def step(self):
+    #     """
+    #     Выполняет один шаг алгоритма
+    #     """
+    #     K_BEST_PERCENT = self._k_best_percent
+    #     proportion = ceil(self._population_size * K_BEST_PERCENT)
+    #     if proportion % 2 != 0:
+    #         proportion += 1
+        
+    #     prev_population = sorted(self._history[-1], key=lambda individual: individual.get_fitness(), reverse=True)
+
+    #     new_population_best = [individual.copy() for individual in prev_population[:proportion]]
+        
+    #     selection_population = prev_population[proportion:]
+
+    #     # Выбор родителей
+    #     if self._selection_method == "roulette":
+    #         parents = self._selection.roulette_selection(selection_population)
+
+    #     elif self._selection_method == "rank":
+    #         parents = self._selection.rank_selection(selection_population)
+
+    #     else:
+    #         parents = self._selection.tournament_selection(
+    #             selection_population,
+    #             k=3
+    #         )
+        
+    #     new_population_children = sorted(self._crossover.do(parents), key=lambda ind: -ind.get_fitness())
+        
+    #     new_population = new_population_best + self._mutation.do(new_population_children) # Новая популяция
+        
+    #     self._eval_fitness(new_population)
+    #     self._history.append(new_population)
+    
     def step(self):
         """
         Выполняет один шаг алгоритма
         """
         K_BEST_PERCENT = self._k_best_percent
-        proportion = ceil(self._population_size * K_BEST_PERCENT)
+        proportion = ceil(self._square_count * K_BEST_PERCENT)
         if proportion % 2 != 0:
             proportion += 1
         
-        prev_population = sorted(self._history[-1], key=lambda individual: individual.get_fitness(), reverse=True)
-
-        new_population_best = [individual.copy() for individual in prev_population[:proportion]]
+        prev_population = self._history[-1]
+        new_population_best = prev_population[:proportion] # Сохранение лучших без изменений
         
-        selection_population = prev_population[proportion:]
-
         # Выбор родителей
+        parents = []
         if self._selection_method == "roulette":
-            parents = self._selection.roulette_selection(selection_population)
+            parents = self._selection.roulette_selection(prev_population[proportion:])
 
         elif self._selection_method == "rank":
-            parents = self._selection.rank_selection(selection_population)
+            parents = self._selection.rank_selection(prev_population[proportion:])
 
         else:
             parents = self._selection.tournament_selection(
-                selection_population,
+                prev_population[proportion:],
                 k=3
             )
         
