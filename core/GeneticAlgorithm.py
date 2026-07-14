@@ -124,7 +124,7 @@ class GeneticAlgorithm:
         F = A * covered_points^2
             - B * intersection_area
             - C * empty_squares
-            - sqrt(D * total_area)
+            - D * total_area
             - E * uncovered_points
             - F * sum_relative_distance_empty_squares
         """
