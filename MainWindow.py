@@ -381,7 +381,27 @@ class MainWindow(qtw.QMainWindow):
                 )
                 return
 
-            self.algorithm.step()
+            generation_created = self.algorithm.step()
+
+            if not generation_created:
+                if self.algorithm.current_population_covers_all_points():
+                    qtw.QMessageBox.information(
+                        self,
+                        "Алгоритм завершён",
+                        (
+                            "Алгоритм остановлен досрочно: "
+                            "в текущей популяции найдено полное покрытие всех точек."
+                        )
+                    )
+                else:
+                    qtw.QMessageBox.information(
+                        self,
+                        "Алгоритм завершён",
+                        "Достигнуто заданное число поколений."
+                    )
+
+                return
+
             self.max_computed_step += 1
 
             self.add_table_row(self.max_computed_step)
@@ -396,11 +416,24 @@ class MainWindow(qtw.QMainWindow):
             self.current_step - 1
         )
 
-        self.choose_best_individual()
+        if self.algorithm.current_population_covers_all_points():
+            self.show_solution_individual()
+        else:
+            self.choose_best_individual()
 
         self.label_population_num.setText(
             f"Рассматриваемая популяция: {self.current_step}"
         )
+
+        if self.algorithm.current_population_covers_all_points():
+            qtw.QMessageBox.information(
+                self,
+                "Полное покрытие",
+                (
+                    "Все точки покрыты.\n"
+                    f"Алгоритм остановлен на поколении {self.current_step}."
+                )
+            )
 
     def go_to_step(self, step):
         if self.algorithm is None:
@@ -457,7 +490,10 @@ class MainWindow(qtw.QMainWindow):
         )
 
         self.draw_fitness_plot()
-        self.choose_best_individual()
+        if self.algorithm.current_population_covers_all_points():
+            self.show_solution_individual()
+        else:
+            self.choose_best_individual()
 
         self.label_population_num.setText(
             f"Рассматриваемая популяция: {self.current_step}"
@@ -518,6 +554,30 @@ class MainWindow(qtw.QMainWindow):
                 f"поколение {self.current_step}"
             ),
             text
+        )
+
+    def show_solution_individual(self):
+        solution = self.algorithm.get_current_solution()
+
+        if solution is None:
+            self.choose_best_individual()
+            return
+
+        solution_index = next(
+            index
+            for index, individual in enumerate(self.current_population)
+            if individual is solution
+        )
+
+        self.spin_individuum.setValue(solution_index + 1)
+
+        self.visual_widget.set_data(
+            self.input_points,
+            solution.get_chromosome()
+        )
+
+        self.label_individuum_fitness.setText(
+            f"Fitness индивидуума: {solution.get_fitness()}"
         )
 
     def choose_best_individual(self):
@@ -785,6 +845,7 @@ class MainWindow(qtw.QMainWindow):
         qtw.QApplication.instance().setStyleSheet(style)
         self.graph_colors = GRAPH_THEMES[graph_theme]
         self.draw_fitness_plot()
+    
 
 if __name__ == "__main__":
     app = qtw.QApplication(sys.argv)

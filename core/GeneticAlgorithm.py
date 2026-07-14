@@ -66,6 +66,30 @@ class GeneticAlgorithm:
     def get_history(self):
         return self._history
 
+    def individual_covers_all_points(self, individual: Individual) -> bool:
+        """Проверяет, покрывает ли индивидуум все исходные точки."""
+        if not self._points:
+            return False
+
+        covered_points, _, _ = self._calculate_covering(
+            individual.get_chromosome()
+        )
+
+        return covered_points == len(self._points)
+
+
+    def current_population_covers_all_points(self) -> bool:
+        """Проверяет наличие полного покрытия в последней популяции."""
+        if not self._history:
+            return False
+
+        current_population = self._history[-1]
+
+        return any(
+            self.individual_covers_all_points(individual)
+            for individual in current_population
+        )
+
     def get_population(self, generation_number) -> List[Individual]:
         """
         Возвращает популяцию определенного поколения
@@ -236,15 +260,28 @@ class GeneticAlgorithm:
 
     def run(self):
         """
-        Выполняет алгоритм до конца (пока не будет достигнуто нужное число поколений)
+        Выполняет алгоритм до достижения числа поколений
+        или до полного покрытия всех точек.
         """
-        while len(self._history) < self._generation_count:
+        while (
+            len(self._history) < self._generation_count
+            and not self.current_population_covers_all_points()
+        ):
             self.step()
 
     def step(self):
         """
         Выполняет один шаг алгоритма
         """
+        if not self._history:
+            raise RuntimeError("Алгоритм ещё не инициализирован")
+
+        if len(self._history) >= self._generation_count:
+            return False
+
+        if self.current_population_covers_all_points():
+            return False
+
         K_BEST_PERCENT = self._k_best_percent
         proportion = ceil(self._population_size * K_BEST_PERCENT)
         if proportion % 2 != 0:
@@ -275,6 +312,8 @@ class GeneticAlgorithm:
         
         self._eval_fitness(new_population)
         self._history.append(new_population)
+
+        return True
     
 
 if __name__ == '__main__':

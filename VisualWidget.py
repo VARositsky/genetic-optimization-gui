@@ -27,14 +27,16 @@ class VisualWidget(qtw.QGraphicsView):
                 "sqr_color": QColor(0, 128, 255, 80),
                 "sqr_border_color": Qt.blue,
                 "point_color": Qt.red,
-                "text_color": Qt.black
+                "text_color": Qt.black,
+                "covered_point_color": Qt.green,
             },
             "dark": {
                 "bg_color": QColor(50, 50, 50),
                 "sqr_color": QColor(209, 195, 46),
                 "sqr_border_color": QColor(255, 112, 11, 80),
                 "point_color": QColor(209, 114, 46),
-                "text_color": Qt.white
+                "text_color": Qt.white,
+                "covered_point_color": Qt.green,
             }
         }
 
@@ -70,8 +72,19 @@ class VisualWidget(qtw.QGraphicsView):
         for x, y in self.points:
             point_item = qtw.QGraphicsEllipseItem(-6, -6, 12, 12)
             point_item.setPos(x, y)
-            point_item.setBrush(QBrush(self.colors["point_color"]))
-            point_item.setFlag(qtw.QGraphicsItem.ItemIgnoresTransformations)
+
+            if self._is_point_covered(x, y):
+                point_color = self.colors["covered_point_color"]
+            else:
+                point_color = self.colors["point_color"]
+
+            point_item.setBrush(QBrush(point_color))
+            point_item.setPen(QPen(point_color))
+
+            point_item.setFlag(
+                qtw.QGraphicsItem.ItemIgnoresTransformations
+            )
+
             self.scene.addItem(point_item)
 
         bounding_rect = self.scene.itemsBoundingRect()
@@ -86,11 +99,23 @@ class VisualWidget(qtw.QGraphicsView):
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
 
     def wheelEvent(self, event):
-        zoom_factor = 1.25
-        factor = zoom_factor if event.angleDelta().y() > 0 else 1 / zoom_factor
-        self.scale(factor, factor)
+        # Один стандартный шаг колеса изменяет масштаб примерно на 10%.
+        zoom_factor = 1.10
+        wheel_steps = event.angleDelta().y() / 120.0
+        factor = zoom_factor ** wheel_steps
+
+        current_scale = self.transform().m11()
+        new_scale = current_scale * factor
+
+        # Ограничение слишком сильного приближения и отдаления.
+        if 0.05 <= new_scale <= 100:
+            self.scale(factor, factor)
+
         cursor_pos = event.pos()
-        self.cursor_cords.setPos(self.mapToScene(cursor_pos + QPoint(10, -10)))
+
+        self.cursor_cords.setPos(
+            self.mapToScene(cursor_pos + QPoint(10, -10))
+        )
 
     def mouseMoveEvent(self, event):
         cursor_pos = event.pos()
@@ -103,6 +128,27 @@ class VisualWidget(qtw.QGraphicsView):
     def leaveEvent(self, event):
         self.cursor_cords.setVisible(False)
         super().leaveEvent(event)
+    
+    @staticmethod
+    def _get_square_values(square):
+        """Поддерживает как Square, так и кортеж (x, y, w)."""
+        if hasattr(square, "x"):
+            return square.x, square.y, square.w
+
+        return square
+
+
+    def _is_point_covered(self, point_x, point_y):
+        for square in self.squares:
+            square_x, square_y, width = self._get_square_values(square)
+
+            if (
+                square_x <= point_x <= square_x + width
+                and square_y <= point_y <= square_y + width
+            ):
+                return True
+
+        return False
 
 
 if __name__ == '__main__':
