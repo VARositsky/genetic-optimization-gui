@@ -10,7 +10,7 @@ from .Mutation import Mutation
 
 class GeneticAlgorithm:
     """Класс генетического алгоритма"""
-    def __init__(self, points=None, pop_size=70, square_count=3, gen_count=500, mut_prob=0.25, cross_prob=0.75, k_best_percent=0.25,
+    def __init__(self, points=None, pop_size=70, square_count=3, gen_count=500, mut_prob=0.25, cross_prob=0.75, k_best_percent=0.05,
     covering_rew=12, uncovering_pen=37, intrsc_pen=20.0, esqrs_pen=35, area_pen=0.001, far_empty_pen=7, selection_method="tournament",):
         
         self._history = [] # История эволюции
@@ -65,30 +65,6 @@ class GeneticAlgorithm:
 
     def get_history(self):
         return self._history
-
-    def individual_covers_all_points(self, individual: Individual) -> bool:
-        """Проверяет, покрывает ли индивидуум все исходные точки."""
-        if not self._points:
-            return False
-
-        covered_points, _, _ = self._calculate_covering(
-            individual.get_chromosome()
-        )
-
-        return covered_points == len(self._points)
-
-
-    def current_population_covers_all_points(self) -> bool:
-        """Проверяет наличие полного покрытия в последней популяции."""
-        if not self._history:
-            return False
-
-        current_population = self._history[-1]
-
-        return any(
-            self.individual_covers_all_points(individual)
-            for individual in current_population
-        )
 
     def get_population(self, generation_number) -> List[Individual]:
         """
@@ -156,7 +132,7 @@ class GeneticAlgorithm:
             self._covering_rew * (covered_points ** 2)
             - self._intersection_penalty * intersection_area
             - self._empty_squares_penalty * empty_squares
-            - sqrt(self._area_penalty * total_area)
+            - self._area_penalty * total_area
             - self._uncovering_pen * (len(self._points) - covered_points)
             - self._far_empty_penalty * sum_relative_distance_emptysqrs 
         )
@@ -252,95 +228,121 @@ class GeneticAlgorithm:
         return total_distance    
 
     def _eval_fitness(self, population: List[Individual]) -> None:
-        """
-        Определеяет для каждого индивидуума значение его фунции приспособленности
-        """
-        for i in range(self._population_size):
-            population[i].set_fitness(self.fitness(population[i]))
+        for individual in population:
+            individual.set_fitness(
+                self.fitness(individual)
+            )
 
     def run(self):
+        """Выполняет алгоритм до лимита поколений или допустимого решения."""
+        while len(self._history) < self._generation_count:
+            if self.current_population_has_solution():
+                break
+
+            if not self.step():
+                break
+    
+    def get_current_solution(self):
         """
-        Выполняет алгоритм до достижения числа поколений
-        или до полного покрытия всех точек.
+        Возвращает лучшее допустимое решение
+        из последней популяции.
         """
-        while (
-            len(self._history) < self._generation_count
-            and not self.current_population_covers_all_points()
-        ):
-            self.step()
+        if not self._history:
+            return None
+
+        solutions = [
+            individual
+            for individual in self._history[-1]
+            if self.individual_is_solution(individual)
+        ]
+
+        if not solutions:
+            return None
+
+        return max(
+            solutions,
+            key=lambda individual: individual.get_fitness()
+        )
+
+    def individual_is_solution(self, individual: Individual) -> bool:
+        """
+        Проверяет, является ли индивидуум допустимым решением:
+        все точки покрыты, квадраты не пересекаются.
+        """
+        if not self._points:
+            return False
+
+        squares = individual.get_chromosome()
+
+        covered_points, _, _ = self._calculate_covering(squares)
+        intersection_area = self._calculate_intersection_area(squares)
+
+        return (
+            covered_points == len(self._points)
+            and intersection_area <= 1e-9
+        )
+
+    def current_population_has_solution(self) -> bool:
+        return self.get_current_solution() is not None
+
+    def _select_parents(self, population):
+        if self._selection_method == "roulette":
+            return self._selection.roulette_selection(population)
+
+        if self._selection_method == "rank":
+            return self._selection.rank_selection(population)
+
+        return self._selection.tournament_selection(
+            population,
+            k=min(3, len(population))
+        )
 
     def step(self):
-        """
-        Выполняет один шаг алгоритма
-        """
+        """Создаёт следующее поколение."""
+
         if not self._history:
             raise RuntimeError("Алгоритм ещё не инициализирован")
 
         if len(self._history) >= self._generation_count:
             return False
 
-        if self.current_population_covers_all_points():
+        if self.current_population_has_solution():
             return False
 
-        K_BEST_PERCENT = self._k_best_percent
-        proportion = ceil(self._population_size * K_BEST_PERCENT)
-        if proportion % 2 != 0:
-            proportion += 1
-        
-        prev_population = sorted(self._history[-1], key=lambda individual: individual.get_fitness(), reverse=True)
+        prev_population = sorted(
+            self._history[-1],
+            key=lambda individual: individual.get_fitness(),
+            reverse=True
+        )
 
-        new_population_best = [individual.copy() for individual in prev_population[:proportion]]
-        
-        selection_population = prev_population[proportion:]
+        elite_count = ceil(
+            self._population_size * self._k_best_percent
+        )
 
-        # Выбор родителей
-        if self._selection_method == "roulette":
-            parents = self._selection.roulette_selection(selection_population)
+        elite_count = max(
+            1,
+            min(elite_count, self._population_size - 1)
+        )
 
-        elif self._selection_method == "rank":
-            parents = self._selection.rank_selection(selection_population)
+        elites = [
+            individual.copy()
+            for individual in prev_population[:elite_count]
+        ]
 
-        else:
-            parents = self._selection.tournament_selection(
-                selection_population,
-                k=3
-            )
-        
-        new_population_children = sorted(self._crossover.do(parents), key=lambda ind: -ind.get_fitness())
-        
-        new_population = new_population_best + self._mutation.do(new_population_children) # Новая популяция
-        
+        children_count = self._population_size - elite_count
+
+        # Лучшие особи тоже участвуют в отборе родителей.
+        parents = self._select_parents(prev_population)
+
+        children = self._crossover.do(parents)
+
+        # При нечётном размере популяции детей всё равно должно хватать.
+        children = children[:children_count]
+        children = self._mutation.do(children)
+
+        new_population = elites + children
+
         self._eval_fitness(new_population)
         self._history.append(new_population)
 
         return True
-    
-
-if __name__ == '__main__':
-    '''EXAMPLE'''
-    N = 40
-    ga = GeneticAlgorithm(points=[(random.randint(-500, 500), random.randint(-500, 500)) for _ in range(N)])
-    ga.initialize()
-    pop = ga.get_population(0)
-    gen = pop[0]
-    n = 0
-    for i in range(1, len(pop)):
-        if gen.get_fitness() < pop[i].get_fitness():
-            gen = pop[i]
-            n = i
-    print(n)
-    gen.draw_squares(ga.get_points())
-    for j in range(ga.get_generation_count()):
-        ga.step()
-    
-    pop = ga.get_population(ga.get_generation_count())
-    gen = pop[0]
-    n = 0
-    for i in range(1, len(pop)):
-        if gen.get_fitness() < pop[i].get_fitness():
-            gen = pop[i]
-            n = i
-    print(n)
-    gen.draw_squares(ga.get_points())
-
-    '''EXAMPLE'''

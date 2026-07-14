@@ -38,17 +38,23 @@ class Crossover:
                 child2 = Individual(M, bounds, parent2.get_points(), init=False)
                 
                 # Формируем хромосомы для первого и второго ребенка
-                child1_chromosome = (
-                    chromosome1[:point1] + 
-                    chromosome2[point1:point2] + 
-                    chromosome1[point2:]
-                )
-                
-                child2_chromosome = (
-                    chromosome2[:point1] + 
-                    chromosome1[point1:point2] + 
-                    chromosome2[point2:]
-                )
+                child1_chromosome = [
+                    square.copy()
+                    for square in (
+                        chromosome1[:point1]
+                        + chromosome2[point1:point2]
+                        + chromosome1[point2:]
+                    )
+                ]
+
+                child2_chromosome = [
+                    square.copy()
+                    for square in (
+                        chromosome2[:point1]
+                        + chromosome1[point1:point2]
+                        + chromosome2[point2:]
+                    )
+                ]
                 
                 child1.set_chromosome(child1_chromosome)
                 child2.set_chromosome(child2_chromosome)
