@@ -711,19 +711,20 @@ class MainWindow(qtw.QMainWindow):
         self.canvas_quality.draw()
 
     def load_points_from_file(self):
-        file_name, ok = qtw.QInputDialog.getText(
+        file_name, _ = qtw.QFileDialog.getOpenFileName(
             self,
             "Загрузить точки",
-            "Введите путь к файлу .json или .txt:"
+            "",
+            "Текстовый файл (*.txt);;JSON-файл (*.json)"
         )
 
-        if not ok or not file_name.strip():
+        if not file_name.strip():
             return
 
         file_name = DataUtils.normalize_file_path(file_name)
 
         try:
-            points = DataUtils.load_points_from_file(file_name)
+            self.input_points = DataUtils.load_points_from_file(file_name)
         except Exception as error:
             qtw.QMessageBox.critical(
                 self,
@@ -732,11 +733,9 @@ class MainWindow(qtw.QMainWindow):
             )
             return
 
-        self.input_points = points
-        self._reset_algorithm_state_after_points_change()
-
         self.points_info.setText(f"Точек: {len(self.input_points)}")
         self.visual_widget.set_data(self.input_points, [])
+        self._reset_algorithm_state_after_points_change()
 
         qtw.QMessageBox.information(
             self,
@@ -753,23 +752,21 @@ class MainWindow(qtw.QMainWindow):
             )
             return
 
-        file_name, ok = qtw.QInputDialog.getText(
+        file_name, _ = qtw.QFileDialog.getSaveFileName(
             self,
             "Сохранить точки",
-            "Введите путь для сохранения .json или .txt:"
+            "",
+            "Текстовый файл (*.txt);;JSON-файл (*.json)"
         )
 
-        if not ok or not file_name.strip():
+        if not file_name.strip():
             return
 
         file_name = DataUtils.normalize_file_path(file_name)
         file_name = DataUtils.add_selected_extension(file_name, ".json")
 
         try:
-            DataUtils.save_points_to_file(
-                file_name,
-                self.input_points
-            )
+            DataUtils.save_points_to_file(file_name, self.input_points)
         except Exception as error:
             qtw.QMessageBox.critical(
                 self,
@@ -803,13 +800,14 @@ class MainWindow(qtw.QMainWindow):
             )
             return
 
-        file_name, ok = qtw.QInputDialog.getText(
+        file_name, _ = qtw.QFileDialog.getSaveFileName(
             self,
             "Сохранить популяции",
-            "Введите путь для сохранения .json или .txt:"
+            "",
+            "Текстовый файл (*.txt);;JSON-файл (*.json)"
         )
 
-        if not ok or not file_name.strip():
+        if not file_name.strip():
             return
 
         file_name = DataUtils.normalize_file_path(file_name)
@@ -828,6 +826,7 @@ class MainWindow(qtw.QMainWindow):
                 f"Не удалось сохранить популяции:\n{error}"
             )
             return
+        
 
         qtw.QMessageBox.information(
             self,
@@ -845,6 +844,13 @@ class MainWindow(qtw.QMainWindow):
         qtw.QApplication.instance().setStyleSheet(style)
         self.graph_colors = GRAPH_THEMES[graph_theme]
         self.draw_fitness_plot()
+
+
+if __name__ == "__main__":
+    app = qtw.QApplication(sys.argv)
+    ui = MainWindow()
+    sys.exit(app.exec_())
+
     
 
 if __name__ == "__main__":
