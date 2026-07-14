@@ -1,5 +1,4 @@
 from typing import List, Tuple
-import random
 from math import ceil, sqrt
 
 from .Individual import Individual
