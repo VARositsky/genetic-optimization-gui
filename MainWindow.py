@@ -1,5 +1,4 @@
 import sys
-import os
 import PyQt5.QtWidgets as qtw
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QMessageBox
@@ -844,13 +843,6 @@ class MainWindow(qtw.QMainWindow):
         qtw.QApplication.instance().setStyleSheet(style)
         self.graph_colors = GRAPH_THEMES[graph_theme]
         self.draw_fitness_plot()
-
-
-if __name__ == "__main__":
-    app = qtw.QApplication(sys.argv)
-    ui = MainWindow()
-    sys.exit(app.exec_())
-
     
 
 if __name__ == "__main__":
