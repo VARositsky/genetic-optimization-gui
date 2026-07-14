@@ -50,7 +50,7 @@ class Mutation:
                         
                         mutated_chromosome.append(Square(new_x, new_y, new_w))
                 else:
-                    mutated_chromosome.append(square)
+                    mutated_chromosome.append(square.copy())
             
             ind.set_chromosome(mutated_chromosome)
             

@@ -97,28 +97,3 @@ class Individual:
         new_ind._fitness = self._fitness
         
         return new_ind
-    
-    def draw_squares(self, points=None):
-        """
-        Отображает решение на графике.
-        """
-        fig, ax = plt.subplots()
-        ax.set_xlim(self._bounds[0] - self._L, self._bounds[2] + self._L)
-        ax.set_ylim(self._bounds[1] - self._L, self._bounds[2] + self._L)
-
-        for square in self._chromosome:
-            x, y, w = square.x, square.y, square.w
-            rect = patches.Rectangle(
-                (x, y), w, w,
-                linewidth=1, edgecolor='black', facecolor='none'
-            )
-            ax.add_patch(rect)
-        
-        if points is not None:
-            xs = [p[0] for p in points]
-            ys = [p[1] for p in points]
-            ax.scatter(xs, ys, color='red', s=30, zorder=5, label='Точки')
-            ax.legend()
-
-        ax.set_aspect('equal', adjustable='box')
-        plt.show()
