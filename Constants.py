@@ -37,14 +37,18 @@ GRAPH_THEMES = {
         "text_color": "black",
         "grid_color": "black",
         "best_color": "red",
-        "average_color": "blue"
+        "average_color": "blue",
+        "legend_text_color": "black",
+        "legend_background_color": "white"
     },
     "dark": {
-        "background_color": "#2b2b2b",
+        "background_color": "#140130",
         "text_color": "white",
         "grid_color": "gray",
-        "best_color": "#d1722e",
-        "average_color": "#297bb0"
+        "best_color": "#d3d606",
+        "average_color": "#d1722e",
+        "legend_text_color": "#ffff",
+        "legend_background_color": "#060126"
     }
 }
 
@@ -57,42 +61,71 @@ THEMES = {
     ),
     "Тёмная": (
         """
-            QMainWindow { background-color: #2b2b2b; }
+            QMainWindow { background-color: #060126;}
             QLabel { color: #fff; }
-            QMenuBar { background-color: #3c3c3c; color: #fff; }
+            QMenuBar { background-color: #060126; color: #060126; }
+            QMenuBar QToolButton {
+                background-color: #9f06ba; 
+                color: #fff; 
+                border-radius: 3px;
+                padding: 1px 3px;}
+            QMenuBar QToolButton:hover {
+                background-color: #fff; 
+                color: #9f06ba;}
+            
             QMenuBar::item:selected { background-color: #4a4a4a; }
-            QMenu { background-color: #3c3c3c; color: #fff; }
+            QMenu { background-color: #060126; color: #fff; }
             QMenu::item:selected { background-color: #4a4a4a; }
 
             QPushButton {
                 margin: 2px;
-                background-color: #d1722e;
-                color: black;
+                background-color: #66428f;
+                color: #fff;
                 padding: 3px 3px;
                 border-radius: 3px;
             }
-            QPushButton:hover { background-color: #df9c6d; }
-            QPushButton:pressed { background-color: #d68246; }
+            QPushButton:hover { background-color: #b22598; }
+            QPushButton:pressed { background-color: #fff; color: #b22598; }
 
             QGroupBox {
                 color: #fff;
-                border: 1px solid #555; 
+                border: 1px solid #650580;
                 padding-top: 15px;
                 padding-left: 5px;
                 padding-right: 5px;
                 padding-bottom: 5px;
+                margin-top: 15px;
             }
 
-            QTableWidget { background-color: #3c3c3c; color: #fff; }
-            QHeaderView::section { background-color: #4a4a4a; color: #fff; }
-            QSpinBox, QDoubleSpinBox, QComboBox { background-color: #3c3c3c; color: #fff; }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top left;
+                top: 5;
+                left: 10px;
+                padding-left: 5px;
+                padding-right: 5px;
+            }
+            
+            QTableWidget { background-color: #140130; color: #fff; border: 1 solid #650580; gridline-color: gray; }
+            QHeaderView::section { background-color: #6804b0; color: #fff; }
+            QSpinBox, QDoubleSpinBox, QComboBox { background-color: #5e3c80; color: #fff; }
+            
+            QSpinBox {selection-color: #66428f; selection-background-color: #fff;}
+            QSpinBox ButtonSymbols { background-color: red; }
+            
+            QDoubleSpinBox { selection-color: #66428f; selection-background-color: #fff; }
+            
+            QComboBox { selection-color: #fff; selection-background-color: #66428f;}
+            QComboBox QAbstractItemView { background-color: #66428f; color: #fff; }
+            QComboBox QAbstractItemView { selection-background-color: #fff; selection-color: #66428f; }
+            
             QLineEdit, QTextEdit { background-color: #3c3c3c; color: #fff; }
-            QSplitter::handle { background-color: #3c3c3c; }
+            QSplitter::handle { background-color: #0e0121; }
             QSplitter::handle:pressed {
-                background-color: #5a5a5a;
+                background-color: #0e0121;
             }
 
-            QMessageBox { background-color: #2b2b2b; color: #fff; }
+            QMessageBox { background-color: #060126; color: #fff; }
             QMessageBox QLabel { color: #fff; }
             QMessageBox QPushButton {
                 background-color: #3c3c3c; color: #fff;
@@ -100,10 +133,10 @@ THEMES = {
                 padding: 5px 15px;
                 border-radius: 3px;
             }
-            QMessageBox QPushButton:hover { background-color: #4a4a4a; }
-            QMessageBox QPushButton:pressed { background-color: #5a5a5a; }
+            QMessageBox QPushButton:hover { background-color: #cf9204; }
+            QMessageBox QPushButton:pressed { background-color: #d68246; }
 
-            QInputDialog { background-color: #2b2b2b; color: #fff; }
+            QInputDialog { background-color: #060126; color: #fff; }
             QInputDialog QLabel { color: #fff; }
             QInputDialog QPushButton {
                 background-color: #3c3c3c;
@@ -112,13 +145,13 @@ THEMES = {
                 padding: 5px 15px;
                 border-radius: 3px;
             }
-            QInputDialog QPushButton:hover { background-color: #4a4a4a; }
-            QInputDialog QPushButton:pressed { background-color: #5a5a5a; }
+            QInputDialog QPushButton:hover { background-color: #cf9204; }
+            QInputDialog QPushButton:pressed { background-color: #d68246; }
 
-            QToolBar { background-color: #3c3c3c}
-            QToolBar QToolButton { background-color: #d1722e; color: #d1722e; }
-            QToolBar QToolButton:hover { background-color: #df9c6d; }
-            QToolBar QToolButton:pressed { background-color: #d68246; }
+            QToolBar { background-color: #140130}
+            QToolBar QToolButton { background-color: #66428f; color: #fcca03; }
+            QToolBar QToolButton:hover { background-color: #b22598; }
+            QToolBar QToolButton:pressed { background-color: #fff; color: #b22598; }
             QToolBar QToolButton:disabled { color: #d68246; }
         """,
         "dark",

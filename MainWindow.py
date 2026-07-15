@@ -35,11 +35,13 @@ class MainWindow(qtw.QMainWindow):
         layout = qtw.QHBoxLayout(self.central_widget)
         layout.setContentsMargins(*MARGINS)
         layout.addWidget(main_splitter)
-
+        
         self.setup_menu()
         self.setup_left_panel(main_splitter)
         self.setup_central_panel(main_splitter)
         self.setup_right_panel(main_splitter)
+        
+        self.theme_group.actions()[1].trigger()
 
     def setup_menu(self):
         menubar = self.menuBar()
@@ -60,13 +62,15 @@ class MainWindow(qtw.QMainWindow):
 
         self.theme_group.addAction(light_theme_action)
         self.theme_group.addAction(dark_theme_action)
-
+    
         self.theme_menu.addActions([
             light_theme_action,
             dark_theme_action
         ])
 
         self.theme_button = qtw.QToolButton(self)
+        self.theme_button.setStyleSheet("QToolButton::menu-indicator { image: none; }")
+        self.theme_button.setCursor(Qt.PointingHandCursor)
         self.theme_button.setText("Тема")
         self.theme_button.setMenu(self.theme_menu)
         self.theme_button.setPopupMode(qtw.QToolButton.InstantPopup)
@@ -76,6 +80,7 @@ class MainWindow(qtw.QMainWindow):
             Qt.TopRightCorner
         )
 
+        # self.theme_changed()
         self.theme_group.triggered.connect(self.theme_changed)
 
     def setup_left_panel(self, main_splitter):
@@ -85,17 +90,21 @@ class MainWindow(qtw.QMainWindow):
         # Блок с вводом точек
         points_box = qtw.QVBoxLayout()
         self.button_generate = qtw.QPushButton("Случайные точки")
+        self.button_generate.setCursor(Qt.PointingHandCursor)
         self.button_generate.clicked.connect(self.generate_random_points_clicked)
         points_box.addWidget(self.button_generate)
         self.button_load = qtw.QPushButton("Загрузить точки")
+        self.button_load.setCursor(Qt.PointingHandCursor)
         self.button_load.clicked.connect(self.load_points_from_file)
         points_box.addWidget(self.button_load)
 
         self.button_save_points = qtw.QPushButton("Сохранить точки")
+        self.button_save_points.setCursor(Qt.PointingHandCursor)
         self.button_save_points.clicked.connect(self.save_points_to_file)
         points_box.addWidget(self.button_save_points)
 
         self.button_manually = qtw.QPushButton("Ввести точки вручную")
+        self.button_manually.setCursor(Qt.PointingHandCursor)
         self.button_manually.clicked.connect(self.manual_points_input)
         points_box.addWidget(self.button_manually)
         self.points_info = qtw.QLabel("Точек: 0")
@@ -203,6 +212,7 @@ class MainWindow(qtw.QMainWindow):
 
         # Кнопка запуска алгоритма
         self.button_start = qtw.QPushButton("Запустить алгоритм")
+        self.button_start.setCursor(Qt.PointingHandCursor)
         self.button_start.clicked.connect(self.launch_algorithm)
         param_form.addRow(self.button_start)
 
@@ -218,6 +228,7 @@ class MainWindow(qtw.QMainWindow):
 
         # Кнопка сохранения поколений
         self.save_button = qtw.QPushButton("Сохранить популяции")
+        self.save_button.setCursor(Qt.PointingHandCursor)
         self.save_button.clicked.connect(self.save_populations_to_file)
         left_splitter.addWidget(self.save_button)
 
@@ -253,6 +264,7 @@ class MainWindow(qtw.QMainWindow):
 
         # Кнопка просмотра генов выбранного индивидуума
         self.view_sol_button = qtw.QPushButton("Посмотреть гены")
+        self.view_sol_button.setCursor(Qt.PointingHandCursor)
         self.view_sol_button.clicked.connect(self.show_chromosome)
         buttons_individuum.addWidget(self.view_sol_button)
         buttons_individuum.addSpacing(20)
@@ -269,6 +281,7 @@ class MainWindow(qtw.QMainWindow):
 
         # Кнопка просмотра лучшего индивидуума из популяции
         self.best_ind_button = qtw.QPushButton("Выбрать лучшего")
+        self.best_ind_button.setCursor(Qt.PointingHandCursor)
         self.best_ind_button.clicked.connect(self.choose_best_individual)
         buttons_individuum.addWidget(self.best_ind_button)
 
@@ -279,16 +292,19 @@ class MainWindow(qtw.QMainWindow):
 
         # Кнопка перехода к предыдущему поколению
         self.prev_button = qtw.QPushButton("Предыдущий шаг")
+        self.prev_button.setCursor(Qt.PointingHandCursor)
         self.prev_button.clicked.connect(self.prev_step)
         navigation_layout.addWidget(self.prev_button)
 
         # Кнопка перехода к следующему поколению
         self.next_button = qtw.QPushButton("Следующий шаг")
+        self.next_button.setCursor(Qt.PointingHandCursor)
         self.next_button.clicked.connect(self.next_step)
         navigation_layout.addWidget(self.next_button)
 
         # Кнопка перехода сразу к конечному ответу
         self.result_button = qtw.QPushButton("Перейти к результату")
+        self.result_button.setCursor(Qt.PointingHandCursor)
         self.result_button.clicked.connect(self.get_result)
         navigation_layout.addWidget(self.result_button)
 
@@ -688,8 +704,9 @@ class MainWindow(qtw.QMainWindow):
         self.ax_quality.set_ylabel("Fitness", color=self.graph_colors["text_color"])
         self.ax_quality.tick_params(color=self.graph_colors["text_color"], labelcolor=self.graph_colors["text_color"])
         self.ax_quality.grid(True, color=self.graph_colors["grid_color"])
-        self.ax_quality.legend()
-
+        legend = self.ax_quality.legend(facecolor=self.graph_colors["legend_background_color"])
+        for text in legend.get_texts():
+            text.set_color(self.graph_colors["legend_text_color"])
         self.canvas_quality.draw()
 
     def _reset_algorithm_state_after_points_change(self):

@@ -27,18 +27,23 @@ class VisualWidget(qtw.QGraphicsView):
                 "point_color": Qt.red,
                 "text_color": Qt.black,
                 "covered_point_color": Qt.green,
+                "border_color": "#cccccc"
             },
             "dark": {
-                "bg_color": QColor(50, 50, 50),
-                "sqr_color": QColor(209, 195, 46),
-                "sqr_border_color": QColor(255, 112, 11, 80),
-                "point_color": QColor(209, 114, 46),
+                "bg_color": QColor("#0f0124"),
+                "sqr_color": QColor(149, 242, 128, 128),
+                "sqr_border_color": QColor("#0cc56c"),
+                "point_color": QColor(207, 17, 42),
                 "text_color": Qt.white,
                 "covered_point_color": Qt.green,
+                "border_color": "black",
             }
         }
 
         self.colors = themes.get(theme, themes["white"])
+        border_color = self.colors.get("border_color", "#cccccc")
+        self.setStyleSheet(f"QGraphicsView {{ border: 1px solid {border_color}; }}")
+
         self.draw()
 
     def set_data(self, points, squares, update=True):
@@ -93,6 +98,7 @@ class VisualWidget(qtw.QGraphicsView):
             self.scene.setSceneRect(bounding_rect)
         else:
             self.scene.setSceneRect(-100, -100, 800, 600)
+            
 
         self.fitInView(self.scene.sceneRect(), Qt.KeepAspectRatio)
 
