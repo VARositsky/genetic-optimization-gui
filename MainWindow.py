@@ -398,7 +398,6 @@ class MainWindow(qtw.QMainWindow):
                         "Алгоритм завершён",
                         "Достигнуто заданное число поколений."
                     )
-
                 return
 
             self.max_computed_step += 1
@@ -407,24 +406,20 @@ class MainWindow(qtw.QMainWindow):
             self.draw_fitness_plot()
 
             self.current_step = self.max_computed_step
-
         else:
             self.current_step += 1
-
+        
         self.current_population = self.algorithm.get_population(
             self.current_step - 1
         )
-
-        if self.algorithm.current_population_has_solution():
-            self.show_solution_individual()
-        else:
-            self.choose_best_individual()
+        
+        self.choose_best_individual()
 
         self.label_population_num.setText(
             f"Рассматриваемая популяция: {self.current_step}"
         )
 
-        if self.algorithm.current_population_has_solution():
+        if any(self.algorithm.individual_is_solution(ind) for ind in self.current_population):
             qtw.QMessageBox.information(
                 self,
                 "Полное покрытие",
@@ -468,7 +463,11 @@ class MainWindow(qtw.QMainWindow):
                 "Сначала задайте точки и запустите алгоритм!"
             )
             return
-
+        
+        if self.algorithm.current_population_has_solution():
+            self.go_to_step(self.max_computed_step)
+            return
+        
         self.algorithm.run()
 
         self.max_computed_step = len(
@@ -483,16 +482,12 @@ class MainWindow(qtw.QMainWindow):
             self.add_table_row(step)
 
         self.current_step = self.max_computed_step
-
         self.current_population = self.algorithm.get_population(
             self.current_step - 1
         )
 
         self.draw_fitness_plot()
-        if self.algorithm.current_population_has_solution():
-            self.show_solution_individual()
-        else:
-            self.choose_best_individual()
+        self.choose_best_individual()
 
         self.label_population_num.setText(
             f"Рассматриваемая популяция: {self.current_step}"
@@ -561,7 +556,7 @@ class MainWindow(qtw.QMainWindow):
         if solution is None:
             self.choose_best_individual()
             return
-
+        
         solution_index = next(
             index
             for index, individual in enumerate(self.current_population)
