@@ -21,12 +21,12 @@
 <table width="100%" style="border: none; text-align: center;">
   <tr>
     <td align="center" width="50%" style="border: none">
-      <img src="https://drive.google.com/uc?export=view&id=11G2ErGBnJCXrcvV3rPHxux00DACT-J73" width="100%">
+      <img src="https://drive.google.com/uc?export=view&id=1jaH170Twvi37ARhK0DaMieBBPSFCwufZ" width="100%">
       <br>
       <b>☀️ Светлая тема</b>
     </td>
     <td align="center" width="50%" style="border: none">
-      <img src="https://drive.google.com/uc?export=view&id=1FIb7AQvaW2vmq8uiTVukIdNpI5vstjiZ" width="100%">
+      <img src="https://drive.google.com/uc?export=view&id=16wZVcp_8YHjUmxZPBJmt7gWydyz-f3gU" width="100%">
       <br>
       <b>🌙 Тёмная тема</b>
     </td>
