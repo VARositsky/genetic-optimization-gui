@@ -129,26 +129,23 @@ THEMES = {
             QMessageBox { background-color: #060126; color: #fff; }
             QMessageBox QLabel { color: #fff; }
             QMessageBox QPushButton {
-                background-color: #3c3c3c; color: #fff;
-                border: 1px solid #555;
+                background-color: #66428f; color: #fff;
                 padding: 5px 15px;
                 border-radius: 3px;
             }
-            QMessageBox QPushButton:hover { background-color: #cf9204; }
-            QMessageBox QPushButton:pressed { background-color: #d68246; }
-
+            QMessageBox QPushButton:hover { background-color: #b22598; }
+            QMessageBox QPushButton:pressed { background-color: #fff; color: #b22598; }
+            
             QInputDialog { background-color: #060126; color: #fff; }
             QInputDialog QLabel { color: #fff; }
             QInputDialog QPushButton {
-                background-color: #3c3c3c;
-                color: #fff;
-                border: 1px solid #555;
+                background-color: #66428f; color: #fff;
                 padding: 5px 15px;
                 border-radius: 3px;
             }
-            QInputDialog QPushButton:hover { background-color: #cf9204; }
-            QInputDialog QPushButton:pressed { background-color: #d68246; }
-
+            QInputDialog QPushButton:hover { background-color: #b22598; }
+            QInputDialog QPushButton:pressed { background-color: #fff; color: #b22598; }
+            
             QToolBar { background-color: #140130}
             QToolBar QToolButton { background-color: #66428f; color: #fcca03; }
             QToolBar QToolButton:hover { background-color: #b22598; }
