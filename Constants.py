@@ -108,6 +108,7 @@ THEMES = {
             
             QTableWidget { background-color: #140130; color: #fff; border: 1 solid #650580; gridline-color: gray; }
             QHeaderView::section { background-color: #6804b0; color: #fff; }
+            QTableWidget { selection-background-color: #fff; selection-color: #6804b0; }
             QSpinBox, QDoubleSpinBox, QComboBox { background-color: #5e3c80; color: #fff; }
             
             QSpinBox {selection-color: #66428f; selection-background-color: #fff;}
