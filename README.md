@@ -1,7 +1,7 @@
 <div align="center">
   <h1>🧬 Генетический алгоритм. Покрытие точек квадратами</h1>
   <p>
-    <img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python">
+    <img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python">
     <img src="https://img.shields.io/badge/PyQt5-GUI-green.svg" alt="PyQt5">
   </p>
 </div>
