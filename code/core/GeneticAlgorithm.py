@@ -164,6 +164,7 @@ class GeneticAlgorithm:
                     contains_points = True
 
             if not contains_points:
+                square.is_empty = True
                 empty_squares += 1
                 continue
             
