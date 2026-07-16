@@ -621,9 +621,8 @@ class MainWindow(qtw.QMainWindow):
         )
 
         if not ok: return
-        self.input_points = DataUtils.generate_random_points(points_count)
-        self.points_info.setText(f"Точек: {len(self.input_points)}")
-        self.visual_widget.set_data(self.input_points, [])
+        points = DataUtils.generate_random_points(points_count)
+        self._set_input_points(points)
 
     def manual_points_input(self):
         text, ok = qtw.QInputDialog.getMultiLineText(
@@ -650,9 +649,7 @@ class MainWindow(qtw.QMainWindow):
             qtw.QMessageBox.critical(self, "Ошибка ввода", f"Некорректный формат точек:\n{error}")
             return
 
-        self.input_points = points
-        self.points_info.setText(f"Точек: {len(self.input_points)}")
-        self.visual_widget.set_data(self.input_points, [])
+        self._set_input_points(points)
 
     def draw_fitness_plot(self):
         self.figure_quality.set_facecolor(self.graph_colors["background_color"])
@@ -711,11 +708,29 @@ class MainWindow(qtw.QMainWindow):
         self.max_computed_step = 0
 
         self.table_widget.setRowCount(0)
-        self.label_population_num.setText("Рассматриваемая популяция: 0")
-        self.label_individuum_fitness.setText("Fitness индивидуума: 0")
+
+        self.label_population_num.setText(
+            "Рассматриваемая популяция: 0"
+        )
+        self.label_individuum_fitness.setText(
+            "Fitness индивидуума: 0"
+        )
+
+        # Сбрасываем выбор индивидуума, не вызывая обработчик valueChanged.
+        self.spin_individuum.blockSignals(True)
+        self.spin_individuum.setRange(
+            MIN_INDIVIDUUM_VALUE,
+            MIN_INDIVIDUUM_VALUE
+        )
+        self.spin_individuum.setValue(
+            MIN_INDIVIDUUM_VALUE
+        )
+        self.spin_individuum.blockSignals(False)
 
         self.ax_quality.clear()
-        self.ax_quality.set_title("Изменение функции качества")
+        self.ax_quality.set_title(
+            "Изменение функции качества"
+        )
         self.ax_quality.set_xlabel("Поколение")
         self.ax_quality.set_ylabel("Fitness")
         self.ax_quality.grid(True)
@@ -735,7 +750,7 @@ class MainWindow(qtw.QMainWindow):
         file_name = DataUtils.normalize_file_path(file_name)
 
         try:
-            self.input_points = DataUtils.load_points_from_file(file_name)
+            points = DataUtils.load_points_from_file(file_name)
         except Exception as error:
             qtw.QMessageBox.critical(
                 self,
@@ -744,9 +759,7 @@ class MainWindow(qtw.QMainWindow):
             )
             return
 
-        self.points_info.setText(f"Точек: {len(self.input_points)}")
-        self.visual_widget.set_data(self.input_points, [])
-        self._reset_algorithm_state_after_points_change()
+        self._set_input_points(points)
 
         qtw.QMessageBox.information(
             self,
@@ -856,6 +869,20 @@ class MainWindow(qtw.QMainWindow):
         self.graph_colors = GRAPH_THEMES[graph_theme]
         self.draw_fitness_plot()
     
+    def _set_input_points(self, points):
+        self.input_points = list(points)
+
+        self._reset_algorithm_state_after_points_change()
+
+        self.points_info.setText(
+            f"Точек: {len(self.input_points)}"
+        )
+
+        self.visual_widget.set_data(
+            self.input_points,
+            []
+        )
+        
 
 if __name__ == "__main__":
     app = qtw.QApplication(sys.argv)
