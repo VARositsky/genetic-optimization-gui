@@ -46,7 +46,7 @@
 1. Склонируйте репозиторий:
    ```bash
    git clone https://github.com/VARositsky/genetic-optimization-gui.git
-   cd genetic-optimization-gui
+   cd genetic-optimization-gui/code
    ```
 2. Установите зависимости:
    ```bash
@@ -54,5 +54,5 @@
    ```
 3. Запустите командой:
    ```bash
-   python MainWindow.py
+   python main.py
    ```
