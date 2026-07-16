@@ -503,7 +503,11 @@ class MainWindow(qtw.QMainWindow):
         )
 
         self.draw_fitness_plot()
-        self.choose_best_individual()
+        
+        if self.algorithm.current_population_has_solution():
+            self.show_solution_individual()
+        else:
+            self.choose_best_individual()
 
         self.label_population_num.setText(
             f"Рассматриваемая популяция: {self.current_step}"
