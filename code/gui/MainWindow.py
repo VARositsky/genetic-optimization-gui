@@ -336,6 +336,7 @@ class MainWindow(qtw.QMainWindow):
         self.table_widget.setItem(row, 0, qtw.QTableWidgetItem(str(gen_index)))
         self.table_widget.setItem(row, 1, qtw.QTableWidgetItem(f"{best:.4f}"))
         self.table_widget.setItem(row, 2, qtw.QTableWidgetItem(f"{mean:.4f}"))
+        
 
     def launch_algorithm(self):
         if self.input_points is None:
@@ -423,7 +424,14 @@ class MainWindow(qtw.QMainWindow):
 
             self.current_step = self.max_computed_step
         else:
-            self.current_step += 1
+            current_step = self.current_step
+            best_fitness = float(self.table_widget.item(current_step - 1, 1).text())
+            current_step += 1
+            current_fitness = float(self.table_widget.item(current_step - 1, 1).text())
+            while best_fitness >= current_fitness and current_step < self.max_computed_step:
+                current_step += 1
+                current_fitness = float(self.table_widget.item(current_step - 1, 1).text())
+            self.current_step = current_step
         
         self.current_population = self.algorithm.get_population(
             self.current_step - 1
@@ -469,7 +477,16 @@ class MainWindow(qtw.QMainWindow):
     def prev_step(self):
         if self.current_step - 1 < 1:
             return
-        self.go_to_step(self.current_step - 1)
+    
+        current_fitness = float(self.table_widget.item(self.current_step - 1, 1).text())
+
+        new_step = self.current_step - 1
+
+        while new_step > 1 and float(self.table_widget.item(new_step - 1, 1).text()) == current_fitness:
+            new_step -= 1
+        
+        self.current_step = new_step
+        self.go_to_step(self.current_step)
 
     def get_result(self):
         if self.algorithm is None:
